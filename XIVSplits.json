@@ -1,0 +1,13 @@
+﻿{
+  "Author": "Ramen",
+  "Name": "XIVSplits",
+  "Punchline": "Split your FFXIV runs with ease!",
+  "Description": "A plugin for livesplit that allows you to use splits for FFXIV, configure your own LiveSplit setup or use the internal segment",
+  "InternalName": "XIVSplits",
+  "RepoUrl": "https://github.com/PassiveModding/XIVSplits",
+  "ApplicableVersion": "any",
+  "DalamudApiLevel": 8,
+  "LoadPriority": 0,
+  "ImageUrls": [],
+  "IconUrl": null
+}
