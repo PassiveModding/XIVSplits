@@ -127,8 +127,6 @@ namespace XIVSplits.UI
                     ImGui.TableHeadersRow();
 
 
-                    // sum of splits to keep track of total
-                    TimeSpan sum = TimeSpan.Zero;
                     for (int i = 0; i < currentProfile.Template.Count; i++)
                     {
                         Split? split = currentProfile.Template[i];
@@ -180,8 +178,7 @@ namespace XIVSplits.UI
                         ImGui.TableNextColumn();
                         ImGui.Text(split.SplitTime.ToString("mm\\:ss\\.ff"));
                         ImGui.TableNextColumn();
-                        sum += split.Total;
-                        ImGui.Text(sum.ToString("mm\\:ss\\.ff"));
+                        ImGui.Text(split.Total.ToString("mm\\:ss\\.ff"));
                         ImGui.TableNextColumn();
                         ImGui.Text(split.BestSegmentParsed.ToString("mm\\:ss\\.ff"));
                         ImGui.TableNextColumn();
@@ -212,10 +209,12 @@ namespace XIVSplits.UI
         // helper function to colour text based on whether the current split is better than the best split
         private void DrawStyledText(TimeSpan segment, TimeSpan compare, string format)
         {
-            if (compare == TimeSpan.Zero)
+            if (compare == TimeSpan.Zero || segment == TimeSpan.Zero)
             {
                 // white
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 1, 1, 1));
                 ImGui.Text(segment.ToString(format));
+                ImGui.PopStyleColor();
             }
             else if (segment < compare)
             {
@@ -234,7 +233,9 @@ namespace XIVSplits.UI
             else
             {
                 // white
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 1, 1, 1));
                 ImGui.Text(segment.ToString(format));
+                ImGui.PopStyleColor();
             }
         }
 
