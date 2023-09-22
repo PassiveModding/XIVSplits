@@ -46,6 +46,8 @@ namespace XIVSplits.Timers
                 }
 
                 IsRunning = true;
+                RealTime.Reset();
+                SegmentTime.Reset();
                 RealTime.Start();
                 SegmentTime.Start();
                 CurrentSplitIndex = 0;
@@ -61,9 +63,23 @@ namespace XIVSplits.Timers
             if (!IsRunning) return;
             SegmentTime.Stop();
 
-            var config = ConfigService.Get();
-            var currentProfile = config.GetCurrentProfile();
-            Split currentSplit = currentProfile.Template[CurrentSplitIndex];
+            SetCurrentSplitData(time, objective);
+            SegmentTime.Reset();
+            CurrentSplitIndex++;
+
+            var currentProfile = ConfigService.Get().GetCurrentProfile();
+            if (CurrentSplitIndex >= currentProfile.Template.Count)
+            {
+                Stop();
+            }
+
+            // Not doing to resume segment time here as it is supposed to be a measure of the amount of time in combat.
+            // The split time (RealTime.Elapsed - GetPrevSplit().Total) is the time between the last split and the current split.
+        }
+
+        private Split GetPrevSplit()
+        {
+            var currentProfile = ConfigService.Get().GetCurrentProfile();
             Split prevSplit;
             if (CurrentSplitIndex == 0)
             {
@@ -73,19 +89,19 @@ namespace XIVSplits.Timers
             {
                 prevSplit = currentProfile.Template[CurrentSplitIndex - 1];
             }
+
+            return prevSplit;
+        }
+
+        private void SetCurrentSplitData(TimeSpan parsedTime, string? objective = null)
+        {
+            var currentProfile = ConfigService.Get().GetCurrentProfile();
+            Split currentSplit = currentProfile.Template[CurrentSplitIndex];
             currentSplit.Objective = objective ?? "Unknown";
-            currentSplit.SegmentParsed = time;
+            currentSplit.SegmentParsed = parsedTime;
             currentSplit.Segment = SegmentTime.Elapsed;
-            currentSplit.SplitTime = RealTime.Elapsed - prevSplit.Total;
+            currentSplit.SplitTime = RealTime.Elapsed - GetPrevSplit().Total;
             currentSplit.Total = RealTime.Elapsed;
-
-            SegmentTime.Reset();
-            CurrentSplitIndex++;
-
-            if (CurrentSplitIndex >= currentProfile.Template.Count)
-            {
-                Stop();
-            }
         }
 
         public void ManualSplit(string? objective = null)
@@ -93,32 +109,21 @@ namespace XIVSplits.Timers
             if (!IsRunning) return;
             SegmentTime.Stop();
 
-            Config.Config config = ConfigService.Get();
-            var currentProfile = config.GetCurrentProfile();
-            // if currentsplitindex is greater than splitsarray length, expand splitsarray
-            Split currentSplit = currentProfile.Template[CurrentSplitIndex];
-            Split prevSplit;
-            if (CurrentSplitIndex == 0)
-            {
-                prevSplit = new Split();
-            }
-            else
-            {
-                prevSplit = currentProfile.Template[CurrentSplitIndex - 1];
-            }
-            currentSplit.Objective = objective ?? "Manual Split";
-            currentSplit.SegmentParsed = TimeSpan.Zero;
-            currentSplit.Segment = SegmentTime.Elapsed;
-            currentSplit.SplitTime = RealTime.Elapsed - prevSplit.Total;
-            currentSplit.Total = RealTime.Elapsed;
+            // Set parsed time to 0 since there is no chat message to read from
+            // Potentially could read the duty time?
+            SetCurrentSplitData(TimeSpan.Zero, objective);
             SegmentTime.Reset();
+
+            // Resume segment time as we cannot know if the player is in combat or not
             SegmentTime.Start();
             CurrentSplitIndex++;
 
+            // if currentsplitindex is greater than splitsarray length, expand splitsarray
+            var currentProfile = ConfigService.Get().GetCurrentProfile();
             if (CurrentSplitIndex >= currentProfile.Template.Count)
             {
                 var newSplit = new Split();
-                currentProfile.Template .Add(newSplit);
+                currentProfile.Template.Add(newSplit);
             }
         }
 
@@ -151,10 +156,6 @@ namespace XIVSplits.Timers
 
             var splits = currentProfile.Template.Select(split => split.CloneSplit()).ToList();
             currentProfile.History[DateTime.Now] = splits;
-
-            RealTime.Reset();
-            SegmentTime.Reset();
-            CurrentSplitIndex = 0;
             ConfigService.Save();
         }
 
