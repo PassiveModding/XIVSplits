@@ -1,23 +1,40 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
+		<Authors>PassiveModding</Authors>    
+		<Company>PassiveModding</Company>
+		<Version>1.0.0</Version>
+		<Description>Split your FFXIV runs with ease!</Description>
+		<Copyright></Copyright>
+		<PackageProjectUrl>https://github.com/PassiveModding/XIVSplits</PackageProjectUrl>
+		<Configurations>Debug;Release;External</Configurations>
+	</PropertyGroup>
+
+	<PropertyGroup>
 		<TargetFramework>net7.0-windows</TargetFramework>
+		<Platforms>x64</Platforms>
 		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<ProduceReferenceAssembly>false</ProduceReferenceAssembly>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-		<Platforms>x64</Platforms>
+		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
-
-	<Target Name="PackagePlugin" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
-        <DalamudPackager ProjectDir="$(ProjectDir)" OutputPath="$(OutputPath)" AssemblyName="$(AssemblyName)" MakeZip="true" />
-    </Target>
 		
 	<PropertyGroup>
 		<DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
 		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
 		<AssemblyVersion>1.0.2.1</AssemblyVersion>
 		<BaseOutputPath>bin\</BaseOutputPath>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(OS)' != 'Windows_NT' OR '$(CI)' == 'true'">
+		<DalamudLibPath>$(DALAMUD_HOME)/</DalamudLibPath>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="$(Configuration) == 'External'">
+		<TargetFramework>net7.0</TargetFramework>
+		<DefineConstants>EXTERNAL_BUILD</DefineConstants>
+		<DalamudLibPath>..\..\DalamudLibs\</DalamudLibPath>
 	</PropertyGroup>
 
 	<ItemGroup>
