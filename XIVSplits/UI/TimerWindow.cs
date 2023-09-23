@@ -111,7 +111,7 @@ namespace XIVSplits.UI
                 // table for splits
                 // fit content, do not expand Y
                 var currentProfile = config.GetCurrentProfile();
-                if (ImGui.BeginTable("Splits", 10, ImGuiTableFlags.Borders | ImGuiTableFlags.Hideable))
+                if (ImGui.BeginTable("Splits", 11, ImGuiTableFlags.Borders | ImGuiTableFlags.Hideable))
                 {
                     // word for current but shorter "cur"
                     ImGui.TableSetupColumn("Cur", ImGuiTableColumnFlags.WidthFixed, 20);
@@ -122,8 +122,9 @@ namespace XIVSplits.UI
                     ImGui.TableSetupColumn("Actual", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.DefaultHide, 60);
                     ImGui.TableSetupColumn("Split", ImGuiTableColumnFlags.WidthFixed, 60);
                     ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 60);
-                    ImGui.TableSetupColumn("Best", ImGuiTableColumnFlags.WidthFixed, 60); // use best parsed segment
-                    ImGui.TableSetupColumn("Best Split", ImGuiTableColumnFlags.WidthFixed, 60);
+                    ImGui.TableSetupColumn("Best Game Segment"); // use best parsed segment
+                    ImGui.TableSetupColumn("Best Segment");
+                    ImGui.TableSetupColumn("Best Split");
                     ImGui.TableHeadersRow();
 
 
@@ -176,13 +177,15 @@ namespace XIVSplits.UI
                         ImGui.TableNextColumn();
                         DrawStyledText(split.Segment, split.BestSegment, "mm\\:ss\\.ff");
                         ImGui.TableNextColumn();
-                        ImGui.Text(split.SplitTime.ToString("mm\\:ss\\.ff"));
+                        DrawStyledText(split.SplitTime, split.BestSplit, "mm\\:ss\\.ff");
                         ImGui.TableNextColumn();
                         ImGui.Text(split.Total.ToString("mm\\:ss\\.ff"));
                         ImGui.TableNextColumn();
                         ImGui.Text(split.BestSegmentParsed.ToString("mm\\:ss\\.ff"));
                         ImGui.TableNextColumn();
                         ImGui.Text(split.BestSegment.ToString("mm\\:ss\\.ff"));
+                        ImGui.TableNextColumn();
+                        ImGui.Text(split.BestSplit.ToString("mm\\:ss\\.ff"));
                     }
 
                     ImGui.EndTable();

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,10 +26,25 @@ namespace XIVSplits.UI
 
             // create a new run from a template
             var config = ConfigService.Get();
+            // About section
+            if (ImGui.CollapsingHeader("About"))
+            {
+                ImGui.TextWrapped("A template represents a set of splits that can be used to create a new run.");
+                ImGui.TextWrapped("A run is a set of splits that are tracked and saved.");
+                ImGui.TextWrapped("The template will also keep track of the best times for each split.");
+                ImGui.TextColored(new Vector4(0.5f, 0.5f, 1f, 1f), "Game Segment");
+                ImGui.TextWrapped("Game Segment is the time based on the 'completion time' text that appears in game.");
+                ImGui.TextWrapped("This is only set using the 'Auto Completion Split' option and will otherwise be set to zero.");
+                ImGui.TextColored(new Vector4(0.5f, 0.5f, 1f, 1f), "Segment");
+                ImGui.TextWrapped("Segment is the time based on the time between the start of combat (or the split) and the end of combat (or the split).");
+                ImGui.TextWrapped("Depending on the content being run, this may be equal to or shorter than the actual split time.");
+                ImGui.TextColored(new Vector4(0.5f, 0.5f, 1f, 1f), "Split");
+                ImGui.TextWrapped("Split is the time based on the time between the last split and the current split.");
+            }
 
-
+            ImGui.BeginChild("Splits", new Vector2(0, 0), true);
             // dropdown, select from existing templates
-            if (ImGui.BeginCombo("Template", config.CurrentProfile))
+            if (ImGui.BeginCombo("Current Template", config.CurrentProfile))
             {
                 foreach (string template in config.SplitCollection.Keys)
                 {
@@ -64,140 +80,264 @@ namespace XIVSplits.UI
                 ConfigService.Save();
             }
 
-            for (int collectionIndex = 0; collectionIndex < config.SplitCollection.Count; collectionIndex++)
+            // draw active template first
+            var activeProfile = config.SplitCollection[config.CurrentProfile];
+            DrawTemplate(config.CurrentProfile, activeProfile);
+            ImGui.EndChild();
+        }
+
+        private void DrawTemplate(string profileName, SplitProfile profile)
+        {
+            var config = ConfigService.Get();
+            var name = profileName;
+            var splitTemplate = profile.Template;
+
+            // if there are no splits, add one
+            if (splitTemplate.Count == 0)
             {
-                var profile = config.SplitCollection.ElementAt(collectionIndex);
-                var name = profile.Key;
-                var splitTemplate = profile.Value.Template;
+                splitTemplate.Add(new Split());
+                ConfigService.Save();
+            }
 
-                if (!ImGui.CollapsingHeader(name))
+            if (ImGui.InputText($"##{profile.GetHashCode()}_name", ref name, 256, ImGuiInputTextFlags.EnterReturnsTrue) && name != profileName)
+            {
+                // check if name exists, add number if it does
+                int j = 1;
+                string newName = name.Trim();
+                while (config.SplitCollection.ContainsKey(newName))
                 {
-                    continue;
+                    newName = $"{name} ({j})";
+                    j++;
                 }
 
-                if (ImGui.InputText($"##{profile.GetHashCode()}_name", ref name, 256, ImGuiInputTextFlags.EnterReturnsTrue) && name != profile.Key)
-                {
-                    // check if name exists, add number if it does
-                    int j = 1;
-                    string newName = name.Trim();
-                    while (config.SplitCollection.ContainsKey(newName))
-                    {
-                        newName = $"{name} ({j})";
-                        j++;
-                    }
+                config.SplitCollection.Remove(profileName);
+                config.SplitCollection[newName] = profile;
+                ConfigService.Save();
+            }
 
-                    config.SplitCollection.Remove(profile.Key);
-                    config.SplitCollection[newName] = profile.Value;
-                    ConfigService.Save();
+            ImGui.SameLine();
+            if (ImGui.Button($"Duplicate##{profile.GetHashCode()}"))
+            {
+                // check if name exists, add number if it does
+                int j = 1;
+                string newName = $"{name} ({j})";
+                while (config.SplitCollection.ContainsKey(newName))
+                {
+                    newName = $"{name} ({j})";
+                    j++;
                 }
 
-                ImGui.SameLine();
-                if (ImGui.Button($"Duplicate##{profile.GetHashCode()}"))
+                // shallow copy splits
+                var newSplits = new List<Split>();
+                foreach (var split in splitTemplate)
                 {
-                    // check if name exists, add number if it does
-                    int j = 1;
-                    string newName = $"{name} ({j})";
-                    while (config.SplitCollection.ContainsKey(newName))
-                    {
-                        newName = $"{name} ({j})";
-                        j++;
-                    }
-
-                    // shallow copy splits
-                    var newSplits = new List<Split>();
-                    foreach (var split in splitTemplate)
-                    {
-                        newSplits.Add(split.CloneSplit());
-                    }
-
-                    config.SplitCollection[newName] = new SplitProfile()
-                    {
-                        Template = newSplits,
-                        History = new Dictionary<DateTime, List<Split>>()
-                    };
-                    ConfigService.Save();
+                    newSplits.Add(split.CloneSplit());
                 }
 
-
-                // align right
-                ImGui.SameLine();
-                if (ImGui.Button($"Remove##{profile.GetHashCode()}"))
+                config.SplitCollection[newName] = new SplitProfile()
                 {
-                    config.SplitCollection.Remove(profile.Key);
-                    ConfigService.Save();
-                    break;
+                    Template = newSplits,
+                    History = new Dictionary<DateTime, List<Split>>()
+                };
+                ConfigService.Save();
+            }
+
+
+            // align right
+            ImGui.SameLine();
+            // grey out button if there is only one split
+            if (config.SplitCollection.Count == 1)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Button, new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1));
+                ImGui.Button($"Remove##{profile.GetHashCode()}");
+                ImGui.PopStyleColor();
+            }
+            else if (ImGui.Button($"Remove##{profile.GetHashCode()}"))
+            {
+                config.SplitCollection.Remove(profileName);
+                // update current profile if it was removed
+                if (config.CurrentProfile == profileName)
+                {
+                    config.CurrentProfile = config.SplitCollection.Keys.First();
                 }
+                ConfigService.Save();
+                return;
+            }
 
-                // table for splits
-                // fit content, do not expand Y
-                if (ImGui.BeginTable("Split Template", 3, ImGuiTableFlags.Borders))
+            // table for splits
+            // fit content, do not expand Y
+            if (ImGui.BeginTable("Split Template", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.Hideable))
+            {
+                ImGui.TableSetupColumn("Reorder", ImGuiTableColumnFlags.WidthFixed, 60);
+                ImGui.TableSetupColumn("Name");
+
+                // columns for setting the time
+                ImGui.TableSetupColumn("Best Game Segment", ImGuiTableColumnFlags.WidthFixed, 120);
+                ImGui.TableSetupColumn("Best Segment", ImGuiTableColumnFlags.WidthFixed, 120);
+                ImGui.TableSetupColumn("Best Split", ImGuiTableColumnFlags.WidthFixed, 120);
+
+                ImGui.TableSetupColumn("Remove", ImGuiTableColumnFlags.WidthFixed, 60);
+                ImGui.TableHeadersRow();
+
+                for (int j = 0; j < splitTemplate.Count; j++)
                 {
-                    ImGui.TableSetupColumn("Reorder", ImGuiTableColumnFlags.WidthFixed, 60);
-                    ImGui.TableSetupColumn("Name");
-                    ImGui.TableSetupColumn("Remove", ImGuiTableColumnFlags.WidthFixed, 60);
-                    ImGui.TableHeadersRow();
-
-                    for (int j = 0; j < splitTemplate.Count; j++)
-                    {
-                        var split = splitTemplate[j];
-                        ImGui.TableNextRow();
-                        ImGui.TableNextColumn();
-
-                        // input index
-                        var jText = j.ToString();
-                        if (ImGui.InputText($"##{split.GetHashCode()}_index", ref jText, 256, ImGuiInputTextFlags.EnterReturnsTrue| ImGuiInputTextFlags.CharsDecimal) && int.Parse(jText) != j)
-                        {
-                            splitTemplate.Remove(split);
-                            splitTemplate.Insert(int.Parse(jText), split);
-                            ConfigService.Save();
-                        }
-                            
-                        ImGui.TableNextColumn();
-                        ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
-                        var splitName = split.Name;
-                        if (ImGui.InputText($"##{split.GetHashCode()}_complete", ref splitName, 256) && splitTemplate[j].Name != splitName)
-                        {
-                            splitTemplate[j].Name = splitName;
-                            ConfigService.Save();
-                        }
-
-                        ImGui.TableNextColumn();
-                        // remove function
-                        if (splitTemplate.Count == 1)
-                        {
-                            // grey out button if there is only one split
-                            ImGui.PushStyleColor(ImGuiCol.Button, new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1));
-                            ImGui.Button($"Remove##{split.GetHashCode()}");
-                            ImGui.PopStyleColor();
-                        }
-                        else if (ImGui.Button($"Remove##{split.GetHashCode()}"))
-                        {
-                            // if there is only one split, do not remove it
-                            if (splitTemplate.Count == 1)
-                            {
-                                break;
-                            }
-                            splitTemplate.RemoveAt(j);
-                            ConfigService.Save();
-                            break;
-                        }
-
-                    }
-
-                    // row to add new split
+                    var split = splitTemplate[j];
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-                    ImGui.TableNextColumn();
-                    ImGui.TableNextColumn();
-                    if (ImGui.Button($"Add Split##{profile.GetHashCode()}"))
+
+                    // input index
+                    var jText = j.ToString();
+                    if (ImGui.InputText($"##{split.GetHashCode()}_index", ref jText, 256, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CharsDecimal) && int.Parse(jText) != j)
                     {
-                        splitTemplate.Add(new Split());
+                        splitTemplate.Remove(split);
+                        splitTemplate.Insert(int.Parse(jText), split);
                         ConfigService.Save();
                     }
 
-                    ImGui.EndTable();
+                    ImGui.TableNextColumn();
+                    ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
+                    var splitName = split.Name;
+                    if (ImGui.InputText($"##{split.GetHashCode()}_complete", ref splitName, 256) && splitTemplate[j].Name != splitName)
+                    {
+                        splitTemplate[j].Name = splitName;
+                        ConfigService.Save();
+                    }
+
+                    ImGui.TableNextColumn();
+                    ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
+                    var bestParsed = FormatTime(split.BestSegmentParsed, false);
+                    if (ImGui.InputText($"##{split.GetHashCode()}_best_parsed", ref bestParsed, 256, ImGuiInputTextFlags.EnterReturnsTrue))
+                    {
+                        if (TryParseTimeInput(bestParsed, out var time))
+                        {
+                            splitTemplate[j].BestSegmentParsed = time;
+                            ConfigService.Save();
+                        }
+                    }
+
+                    ImGui.TableNextColumn();
+                    ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
+                    var bestSegment = FormatTime(split.BestSegment);
+                    if (ImGui.InputText($"##{split.GetHashCode()}_best", ref bestSegment, 256, ImGuiInputTextFlags.EnterReturnsTrue))
+                    {
+                        if (TryParseTimeInput(bestSegment, out var time))
+                        {
+                            splitTemplate[j].BestSegment = time;
+                            ConfigService.Save();
+                        }
+                    }
+
+                    ImGui.TableNextColumn();
+                    ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
+                    var bestSplit = FormatTime(split.BestSplit);
+                    if (ImGui.InputText($"##{split.GetHashCode()}_best_split", ref bestSplit, 256, ImGuiInputTextFlags.EnterReturnsTrue))
+                    {
+                        if (TryParseTimeInput(bestSplit, out var time))
+                        {
+                            splitTemplate[j].BestSplit = time;
+                            ConfigService.Save();
+                        }
+                    }
+
+                    ImGui.TableNextColumn();
+                    // remove function
+                    if (splitTemplate.Count == 1)
+                    {
+                        // grey out button if there is only one split
+                        ImGui.PushStyleColor(ImGuiCol.Button, new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1));
+                        ImGui.Button($"Remove##{split.GetHashCode()}");
+                        ImGui.PopStyleColor();
+                    }
+                    else if (ImGui.Button($"Remove##{split.GetHashCode()}"))
+                    {
+                        // if there is only one split, do not remove it
+                        if (splitTemplate.Count == 1)
+                        {
+                            break;
+                        }
+                        splitTemplate.RemoveAt(j);
+                        ConfigService.Save();
+                        break;
+                    }
+                }
+
+                // row to add new split
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+                ImGui.Text("00h00m00s");
+                ImGui.TableNextColumn();
+                ImGui.Text("00h00m00s.000");
+                ImGui.TableNextColumn();
+                ImGui.Text("00h00m00s.000");
+                ImGui.TableNextColumn();
+                if (ImGui.Button($"Add Split##{profile.GetHashCode()}"))
+                {
+                    splitTemplate.Add(new Split());
+                    ConfigService.Save();
+                }
+
+                ImGui.EndTable();
+            }
+        }
+
+        private string FormatTime(TimeSpan time, bool includeFractionalSeconds = true)
+        {
+            if (includeFractionalSeconds)
+            {
+                if (time.Hours > 0)
+                {
+                    return time.ToString(@"hh\hmm\mss\s\.fff");
+                }
+                else
+                {
+                    return time.ToString(@"mm\mss\s\.fff");
                 }
             }
+            else
+            {
+                if (time.Hours > 0)
+                {
+                    return time.ToString(@"hh\hmm\mss\s");
+                }
+                else
+                {
+                    return time.ToString(@"mm\mss\s");
+                }
+            }
+        }
+
+        private bool TryParseTimeInput(string input, out TimeSpan time)
+        {
+            time = TimeSpan.Zero;
+
+            // ensure parsing as hh:mm:ss, mm:ss, or ss, can also include fractional seconds ie .f .ff .fff
+            var formats = new string[] 
+            { 
+                @"hh\hmm\mss\s", 
+                @"hh\hmm\mss\s\.f",
+                @"hh\hmm\mss\s\.ff",
+                @"hh\hmm\mss\s\.fff",
+                @"mm\mss",
+                @"mm\mss\s\.f",
+                @"mm\mss\s\.ff",
+                @"mm\mss\s\.fff",
+                @"ss\s",
+                @"ss\s\.f",
+                @"ss\s\.ff",
+                @"ss\s\.fff"
+            };
+
+            foreach (var format in formats)
+            {
+                if (TimeSpan.TryParseExact(input, format, null, out time))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

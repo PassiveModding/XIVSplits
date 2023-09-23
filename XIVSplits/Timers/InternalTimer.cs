@@ -151,6 +151,12 @@ namespace XIVSplits.Timers
                 {
                     split.BestSegment = split.Segment;
                 }
+
+                // update best split if we have a non-zero split
+                if (split.SplitTime != TimeSpan.Zero && (split.SplitTime < split.BestSplit || split.BestSplit == TimeSpan.Zero))
+                {
+                    split.BestSplit = split.SplitTime;
+                }
             }
 
 
