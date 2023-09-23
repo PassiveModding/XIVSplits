@@ -62,10 +62,12 @@ namespace XIVSplits.UI
                     "Example: The objective \"^Sohm Al has ended\\.$\" will trigger a split once the text is sent to chat.");
             }
 
+            ImGui.BeginChild("Objectives Config", new Vector2(0, 0), true);
             DrawBasicTriggers();
             DrawGenericObjectives();
             ImGui.NewLine();
             DrawDutyObjectives();
+            ImGui.EndChild();
         }
 
         private void DrawGenericObjectives()
