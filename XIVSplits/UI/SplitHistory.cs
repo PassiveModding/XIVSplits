@@ -20,16 +20,21 @@ namespace XIVSplits.UI
 
         public void Draw()
         {
-            ImGui.BeginChild("##split_history", new System.Numerics.Vector2(0, 0), true, ImGuiWindowFlags.None);
             var config = ConfigService.Get();            
             foreach (var profile in config.SplitCollection)
             {
                 if (ImGui.CollapsingHeader(profile.Key))
                 {
+                    if (profile.Value.History.Count == 0)
+                    {
+                        ImGui.Text("No history yet.");
+                        continue;
+                    }
+                    ImGui.BeginChild($"##{profile.GetHashCode()}_history", new System.Numerics.Vector2(0, 0), true, ImGuiWindowFlags.None);
                     DrawHistory(profile.Value);
+                    ImGui.EndChild();
                 }
             }
-            ImGui.EndChild();
         }
 
         private void DrawHistory(SplitProfile profile)
