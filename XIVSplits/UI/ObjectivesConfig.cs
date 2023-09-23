@@ -28,14 +28,14 @@ namespace XIVSplits.UI
         private readonly Objective NewGenericObjective = new()
         {
             CompleteObjective = "^.+ has ended\\.$",
-            ParseFromDutyInfo = true,
+            GoalType = GoalType.Chat,
             TriggerSplit = true
         };
 
         private readonly Objective NewDutyObjective = new()
         {
             CompleteObjective = "^Activate the coral trigger.+$",
-            ParseFromDutyInfo = true,
+            GoalType = GoalType.DutyObjective,
             TriggerSplit = true
         };
 
@@ -44,72 +44,51 @@ namespace XIVSplits.UI
             // dropdown for about info
             if (ImGui.CollapsingHeader("About"))
             {
-                ImGui.TextColored(new Vector4(0.5f, 0.5f, 1f, 1f), "Generic Objectives");
                 ImGui.TextWrapped("You can also add generic objectives that will trigger a split when completed. These aren't restricted to a specific duty");
-
-                ImGui.TextColored(new Vector4(0.5f, 0.5f, 1f, 1f), "Duty Objectives");
-                ImGui.TextWrapped("These work the same as generic objectives but will only trigger within a specific duty.\n" +
-                    "You can Add Duty Objectives by entering the duty name in the \"Add Duty\" box, it will pre-fill with potential duty objectives.\n" +
+                ImGui.TextWrapped("You can also add a duty instead, objectives under a duty will only trigger within that duty.\n" +
+                    "Enter a duty name in the \"Add Duty\" box, it will pre-fill with potential duty objectives.\n" +
                     "Note: Some of these may not be valid as it may include some boss chat messages.");
 
-                ImGui.TextColored(new Vector4(0.5f, 0.5f, 1f, 1f), "Duty Goal");
-                ImGui.TextWrapped("Parsed from the list of objectives under Duty Information\n" +
-                    "Example: The objective \"^Arrive at the God Who Whispers.+$\" will split once the progress bar is complete\n" +
-                    "Note for dungeons this will typically mean the splits are called as you arrive at a mini-boss not as you kill them");
-
+                // Goals info
                 ImGui.TextColored(new Vector4(0.5f, 0.5f, 1f, 1f), "Chat Goal");
                 ImGui.TextWrapped("Parsed from the chat log\n" +
                     "Example: The objective \"^Sohm Al has ended\\.$\" will trigger a split once the text is sent to chat.");
+
+                ImGui.TextColored(new Vector4(0.5f, 0.5f, 1f, 1f), "Duty Objective Goal");
+                ImGui.TextWrapped("Parsed from the list of objectives under Duty Information\n" +
+                    "Example: The objective \"^Arrive at the God Who Whispers.+$\" will split once the progress bar is complete\n" +
+                    "Note for dungeons this will typically mean the splits are called as you arrive at a mini-boss not as you kill them");
             }
 
-            ImGui.BeginChild("Objectives Config", new Vector2(0, 0), true);
             DrawBasicTriggers();
             DrawGenericObjectives();
             ImGui.NewLine();
             DrawDutyObjectives();
-            ImGui.EndChild();
         }
 
         private void DrawGenericObjectives()
         {
-            ImGui.Text("Generic Objectives");
+            ImGui.Text("Objectives");
             Config.Config config = ConfigService.Get();
 
-            if (ImGui.BeginTable("Generic Objectives", 6, ImGuiTableFlags.Borders))
+            if (ImGui.BeginTable("Generic Objectives", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
             {
-                ImGui.TableSetupColumn("Reorder", ImGuiTableColumnFlags.WidthFixed, 60);
-                ImGui.TableSetupColumn("Objective");
-                ImGui.TableSetupColumn("Duty Goal", ImGuiTableColumnFlags.WidthFixed, 60);
-                ImGui.TableSetupColumn("Chat Goal", ImGuiTableColumnFlags.WidthFixed, 60);
-                ImGui.TableSetupColumn("Split", ImGuiTableColumnFlags.WidthFixed, 40);
-                ImGui.TableSetupColumn("Remove", ImGuiTableColumnFlags.WidthFixed, 60);
+                DrawObjectiveColumnHeaders();
 
-                ImGui.TableHeadersRow();
                 for (int i = 0; i < config.GenericObjectives.Count; i++)
                 {
                     Objective objective = config.GenericObjectives[i];
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-
-                    if (ImGui.ArrowButton($"##{objective.GetHashCode()}_up", ImGuiDir.Up))
+                    // input index
+                    var jText = i.ToString();
+                    if (ImGui.InputText($"##{objective.GetHashCode()}_index", ref jText, 256, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CharsDecimal) && int.Parse(jText) != i)
                     {
-                        // move up
-                        if (i == 0) continue;
-                        Objective temp = config.GenericObjectives[i - 1];
-                        config.GenericObjectives[i - 1] = objective;
-                        config.GenericObjectives[i] = temp;
+                        config.GenericObjectives.Remove(objective);
+                        config.GenericObjectives.Insert(int.Parse(jText), objective);
+                        ConfigService.Save();
                     }
 
-                    ImGui.SameLine();
-
-                    if (ImGui.ArrowButton($"##{objective.GetHashCode()}_down", ImGuiDir.Down))
-                    {
-                        // move down
-                        if (i == config.GenericObjectives.Count - 1) continue;
-                        Objective temp = config.GenericObjectives[i + 1];
-                        config.GenericObjectives[i + 1] = objective;
-                        config.GenericObjectives[i] = temp;
-                    }
 
                     ImGui.TableNextColumn();
                     ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
@@ -121,20 +100,8 @@ namespace XIVSplits.UI
                     }
 
                     ImGui.TableNextColumn();
-                    bool parseFromDutyInfo = objective.ParseFromDutyInfo;
-                    if (ImGui.Checkbox($"##{objective.GetHashCode()}_dutyinfo", ref parseFromDutyInfo) && parseFromDutyInfo != objective.ParseFromDutyInfo)
-                    {
-                        objective.ParseFromDutyInfo = parseFromDutyInfo;
-                        ConfigService.Save();
-                    }
-
-                    ImGui.TableNextColumn();
-                    bool parseFromChat = objective.ParseFromChat;
-                    if (ImGui.Checkbox($"##{objective.GetHashCode()}_chat", ref parseFromChat) && parseFromChat != objective.ParseFromChat)
-                    {
-                        objective.ParseFromChat = parseFromChat;
-                        ConfigService.Save();
-                    }
+                    ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
+                    DrawGoalTypeDropDown(objective);
 
                     ImGui.TableNextColumn();
                     bool triggerSplit = objective.TriggerSplit;
@@ -160,14 +127,12 @@ namespace XIVSplits.UI
                 ImGui.TableNextColumn();
                 ImGui.TableNextColumn();
                 ImGui.TableNextColumn();
-                ImGui.TableNextColumn();
                 if (ImGui.Button($"Add##add_new_objective_generic"))
                 {
                     Objective newObjective = new()
                     {
                         CompleteObjective = "^(.+) has been defeated.$",
-                        ParseFromDutyInfo = false,
-                        ParseFromChat = false,
+                        GoalType = GoalType.Chat,
                         TriggerSplit = false
                     };
                     config.GenericObjectives.Add(newObjective);
@@ -175,6 +140,24 @@ namespace XIVSplits.UI
                 }
 
                 ImGui.EndTable();
+            }
+        }
+
+        private void DrawGoalTypeDropDown(Objective objective)
+        {
+            GoalType goalType = objective.GoalType;
+            if (ImGui.BeginCombo($"##{objective.GetHashCode()}_goaltype", goalType.ToString()))
+            {
+                foreach (GoalType type in Enum.GetValues(typeof(GoalType)))
+                {
+                    if (ImGui.Selectable(type.ToString(), type == goalType))
+                    {
+                        objective.GoalType = type;
+                        ConfigService.Save();
+                    }
+                }
+
+                ImGui.EndCombo();
             }
         }
 
@@ -210,182 +193,126 @@ namespace XIVSplits.UI
             {
                 ImGui.SetTooltip($"Will split the timer when \"{ObjectiveManager.CompletionTimeRegex()}\" is sent to chat.");
             }
-
-            /*
-            ImGui.SameLine();
-            bool autoSealedOff = config.AutoSealedOffSplit;
-            if (ImGui.Checkbox("Auto Sealed Off Split", ref autoSealedOff) && autoSealedOff != config.AutoSealedOffSplit)
-            {
-                config.AutoSealedOffSplit = autoSealedOff;
-                ConfigService.Save();
-            }
-            ImGui.SameLine();
-            // hover text for regex help
-            ImGui.TextDisabled("(?)");
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip($"Will split the timer when \"{ObjectiveManager.SealedOffRegex()}\" is sent to chat.\nNote if you kill a boss without aggroing it, \n" +
-                    $"this will not trigger because there is no message sent.");
-            }
-
-            
-            ImGui.SameLine();
-            var autoNoLongerSealedOff = config.AutoNoLongerSealedSplit;
-            if (ImGui.Checkbox("Auto No Longer Sealed Split", ref autoNoLongerSealedOff) && autoNoLongerSealedOff != config.AutoNoLongerSealedSplit)
-            {
-                config.AutoNoLongerSealedSplit = autoNoLongerSealedOff;
-                ConfigService.Save();
-            }
-            ImGui.SameLine();
-            // hover text for regex help
-            ImGui.TextDisabled("(?)");
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip($"Will split the timer when \"{ObjectiveManager.NoLongerSealedRegex}\" is sent to chat.\n" +
-                    "Note this will not trigger if a boss is killed before a duty is sealed off");
-            }*/
         }
 
 
         private void DrawDutyObjectives()
         {
-            ImGui.Text("Duty Objectives");
+            ImGui.Text("Duties");
             DrawDutySearchInput();
             Config.Config config = ConfigService.Get();
             for (int i = 0; i < config.DutyObjectives.Count; i++)
             {
                 KeyValuePair<string, List<Objective>> duty = config.DutyObjectives.ElementAt(i);
                 // dropdown 
-                if (ImGui.CollapsingHeader(duty.Key))
+                if (!ImGui.CollapsingHeader(duty.Key))
                 {
-                    string name = duty.Key;
-                    if (ImGui.InputText($"##{duty.Key}_name", ref name, 256, ImGuiInputTextFlags.EnterReturnsTrue) && name != duty.Key)
-                    {
-                        // if new name found in list already, abort
-                        if (config.DutyObjectives.ContainsKey(name))
-                        {
-                            PluginLog.LogError($"Duty name already exists: {name}");
-                            continue;
-                        }
+                    continue;
+                }
 
-                        config.DutyObjectives.Remove(duty.Key);
-                        config.DutyObjectives.Add(name, duty.Value);
-                        ConfigService.Save();
+                string name = duty.Key;
+                ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
+                if (ImGui.InputText($"##{duty.Key}_name", ref name, 256, ImGuiInputTextFlags.EnterReturnsTrue) && name != duty.Key)
+                {
+                    // if new name found in list already, abort
+                    if (config.DutyObjectives.ContainsKey(name))
+                    {
+                        PluginLog.LogError($"Duty name already exists: {name}");
+                        continue;
                     }
 
-                    if (ImGui.BeginTable(name, 6, ImGuiTableFlags.Borders))
+                    config.DutyObjectives.Remove(duty.Key);
+                    config.DutyObjectives.Add(name, duty.Value);
+                    ConfigService.Save();
+                }
+
+                if (ImGui.BeginTable(name, 5, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+                {
+                    DrawObjectiveColumnHeaders();
+
+                    for (int j = 0; j < duty.Value.Count; j++)
                     {
-                        ImGui.TableSetupColumn("Reorder", ImGuiTableColumnFlags.WidthFixed, 60);
-                        ImGui.TableSetupColumn("Objective");
-                        ImGui.TableSetupColumn("Duty Goal", ImGuiTableColumnFlags.WidthFixed, 60);
-                        ImGui.TableSetupColumn("Chat Goal", ImGuiTableColumnFlags.WidthFixed, 60);
-                        ImGui.TableSetupColumn("Split", ImGuiTableColumnFlags.WidthFixed, 40);
-                        ImGui.TableSetupColumn("Remove", ImGuiTableColumnFlags.WidthFixed, 60);
-
-                        ImGui.TableHeadersRow();
-
-                        // should be able to re-order objectives
-
-                        for (int j = 0; j < duty.Value.Count; j++)
-                        {
-                            Objective objective = duty.Value[j];
-                            ImGui.TableNextRow();
-                            ImGui.TableNextColumn();
-
-                            if (ImGui.ArrowButton($"##{objective.GetHashCode()}_up", ImGuiDir.Up))
-                            {
-                                // move up
-                                if (j == 0) continue;
-                                Objective temp = duty.Value[j - 1];
-                                duty.Value[j - 1] = objective;
-                                duty.Value[j] = temp;
-                            }
-
-                            ImGui.SameLine();
-
-                            if (ImGui.ArrowButton($"##{objective.GetHashCode()}_down", ImGuiDir.Down))
-                            {
-                                // move down
-                                if (j == duty.Value.Count - 1) continue;
-                                Objective temp = duty.Value[j + 1];
-                                duty.Value[j + 1] = objective;
-                                duty.Value[j] = temp;
-                            }
-
-                            ImGui.TableNextColumn();
-                            ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
-                            string completeObjective = objective.CompleteObjective;
-                            if (ImGui.InputText($"##{objective.GetHashCode()}_complete", ref completeObjective, 256) && completeObjective != objective.CompleteObjective)
-                            {
-                                objective.CompleteObjective = completeObjective;
-                                ConfigService.Save();
-                            }
-
-                            ImGui.TableNextColumn();
-                            bool parseFromDutyInfo = objective.ParseFromDutyInfo;
-                            if (ImGui.Checkbox($"##{objective.GetHashCode()}_dutyinfo", ref parseFromDutyInfo) && parseFromDutyInfo != objective.ParseFromDutyInfo)
-                            {
-                                objective.ParseFromDutyInfo = parseFromDutyInfo;
-                                ConfigService.Save();
-                            }
-
-                            ImGui.TableNextColumn();
-                            bool parseFromChat = objective.ParseFromChat;
-                            if (ImGui.Checkbox($"##{objective.GetHashCode()}_chat", ref parseFromChat) && parseFromChat != objective.ParseFromChat)
-                            {
-                                objective.ParseFromChat = parseFromChat;
-                                ConfigService.Save();
-                            }
-
-                            ImGui.TableNextColumn();
-                            bool triggerSplit = objective.TriggerSplit;
-                            if (ImGui.Checkbox($"##{objective.GetHashCode()}_split", ref triggerSplit) && triggerSplit != objective.TriggerSplit)
-                            {
-                                objective.TriggerSplit = triggerSplit;
-                                ConfigService.Save();
-                            }
-
-                            ImGui.TableNextColumn();
-                            if (ImGui.Button($"Remove##{objective.GetHashCode()}_remove"))
-                            {
-                                duty.Value.Remove(objective);
-                                ConfigService.Save();
-                                break;
-                            }
-                        }
-
-                        // additional row for adding new objectives
+                        Objective objective = duty.Value[j];
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
-                        ImGui.TableNextColumn();
-                        ImGui.TableNextColumn();
-                        ImGui.TableNextColumn();
-                        ImGui.TableNextColumn();
-                        ImGui.TableNextColumn();
-                        if (ImGui.Button($"Add##add_new_objective_{duty.Key.GetHashCode()}"))
+                        // input index
+                        var jText = j.ToString();
+                        if (ImGui.InputText($"##{objective.GetHashCode()}_index", ref jText, 256, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CharsDecimal) && int.Parse(jText) != j)
                         {
-                            Objective newObjective = new()
-                            {
-                                CompleteObjective = "^Activate the button.+$",
-                                ParseFromDutyInfo = false,
-                                ParseFromChat = false,
-                                TriggerSplit = false
-                            };
-                            duty.Value.Add(newObjective);
+                            duty.Value.Remove(objective);
+                            duty.Value.Insert(int.Parse(jText), objective);
                             ConfigService.Save();
                         }
 
-                        ImGui.EndTable();
+                        ImGui.TableNextColumn();
+                        ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
+                        string completeObjective = objective.CompleteObjective;
+                        if (ImGui.InputText($"##{objective.GetHashCode()}_complete", ref completeObjective, 256) && completeObjective != objective.CompleteObjective)
+                        {
+                            objective.CompleteObjective = completeObjective;
+                            ConfigService.Save();
+                        }
+
+                        ImGui.TableNextColumn();
+                        ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
+                        DrawGoalTypeDropDown(objective);
+
+                        ImGui.TableNextColumn();
+                        bool triggerSplit = objective.TriggerSplit;
+                        if (ImGui.Checkbox($"##{objective.GetHashCode()}_split", ref triggerSplit) && triggerSplit != objective.TriggerSplit)
+                        {
+                            objective.TriggerSplit = triggerSplit;
+                            ConfigService.Save();
+                        }
+
+                        ImGui.TableNextColumn();
+                        if (ImGui.Button($"Remove##{objective.GetHashCode()}_remove"))
+                        {
+                            duty.Value.Remove(objective);
+                            ConfigService.Save();
+                            break;
+                        }
                     }
 
-                    if (ImGui.Button($"Remove Duty##{duty.Key.GetHashCode()}"))
+                    // additional row for adding new objectives
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    ImGui.TableNextColumn();
+                    if (ImGui.Button($"Add##add_new_objective_{duty.Key.GetHashCode()}"))
                     {
-                        config.DutyObjectives.Remove(duty.Key);
+                        Objective newObjective = new()
+                        {
+                            CompleteObjective = "^Activate the button.+$",
+                            GoalType = GoalType.DutyObjective,
+                            TriggerSplit = false
+                        };
+                        duty.Value.Add(newObjective);
                         ConfigService.Save();
-                        break;
                     }
+
+                    ImGui.EndTable();
+                }
+
+                if (ImGui.Button($"Remove Duty##{duty.Key.GetHashCode()}"))
+                {
+                    config.DutyObjectives.Remove(duty.Key);
+                    ConfigService.Save();
+                    break;
                 }
             }
+        }
+
+        private void DrawObjectiveColumnHeaders()
+        {
+            ImGui.TableSetupColumn("Reorder", ImGuiTableColumnFlags.WidthFixed, 60);
+            ImGui.TableSetupColumn("Objective");
+            ImGui.TableSetupColumn("Goal Type", ImGuiTableColumnFlags.WidthFixed, 120);
+            ImGui.TableSetupColumn("Split", ImGuiTableColumnFlags.WidthFixed, 30);
+            ImGui.TableSetupColumn("Remove", ImGuiTableColumnFlags.WidthFixed, 70);
+            ImGui.TableHeadersRow();
         }
 
         private List<ContentFinderCondition> contentFinderConditionCache = new();
@@ -475,7 +402,7 @@ namespace XIVSplits.UI
                 objectives.Add(new Objective
                 {
                     CompleteObjective = $"^{Regex.Escape(item.Text)}.*$",
-                    ParseFromDutyInfo = true,
+                    GoalType = GoalType.DutyObjective,
                     TriggerSplit = true,
                 });
             }

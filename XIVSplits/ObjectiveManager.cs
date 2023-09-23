@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using XIVSplits.Config;
+using XIVSplits.Models;
 using XIVSplits.Timers;
 
 namespace XIVSplits
@@ -159,7 +160,7 @@ namespace XIVSplits
                 return;
             }
 
-            Config.Config config = ConfigService.Get();
+            var config = ConfigService.Get();
             if (CurrentDuty != dutyName)
             {
                 // reset objectives
@@ -168,21 +169,45 @@ namespace XIVSplits
                 PluginLog.LogInformation($"New duty detected: {dutyName}");
             }
 
-            KeyValuePair<string, List<Models.Objective>> dutyObjectiveConfig = config.DutyObjectives.FirstOrDefault(x => x.Key == dutyName);
-            if (dutyObjectiveConfig.Value == null) return;
 
-            List<(string objective, float progress)>? currentObjectives = GetDutyObjectives();
+            var currentObjectives = GetDutyObjectives();
             if (currentObjectives == null) return;
+
+
+            var dutyObjectiveConfig = config.DutyObjectives.FirstOrDefault(x => x.Key == dutyName);
+            var genericObjectives = config.GenericObjectives.Where(x => x.GoalType == GoalType.DutyObjective).ToArray();
 
             for (int i = 0; i < currentObjectives.Count; i++)
             {
                 (string objective, float progress) = currentObjectives[i];
-                for (int j = 0; j < dutyObjectiveConfig.Value.Count; j++)
-                {
-                    Models.Objective configObjective = dutyObjectiveConfig.Value[j];
 
-                    Match match = Regex.Match(objective, configObjective.CompleteObjective, RegexOptions.IgnoreCase);
-                    if (match.Success && configObjective.TriggerSplit)
+                if (dutyObjectiveConfig.Value != null)
+                {
+                    for (int j = 0; j < dutyObjectiveConfig.Value.Count; j++)
+                    {
+                        Objective configObjective = dutyObjectiveConfig.Value[j];
+
+                        Match match = Regex.Match(objective, configObjective.CompleteObjective, RegexOptions.IgnoreCase);
+                        if (match.Success && configObjective.TriggerSplit)
+                        {
+                            if (AcknowledgedObjectives.Contains(objective)) continue;
+                            if (progress < 1) continue;
+
+                            AcknowledgedObjectives.Add(objective);
+                            // trigger split
+                            PluginLog.LogInformation($"Splitting on duty objective: {objective}");
+                            InternalTimer.ManualSplit(objective);
+                        }
+                    }
+                }
+
+                // TODO: Since it's a generic objective, should we check if it's already been acknowledged?
+                // this would prevent the same objective from triggering multiple splits but if it follows the same pattern of
+                // being reset per duty what if someone wants to split on the same objective multiple times in a duty?
+                foreach (Objective genericObjective in genericObjectives)
+                {
+                    Match match = Regex.Match(objective, genericObjective.CompleteObjective, RegexOptions.IgnoreCase);
+                    if (match.Success && genericObjective.TriggerSplit)
                     {
                         if (AcknowledgedObjectives.Contains(objective)) continue;
                         if (progress < 1) continue;
@@ -204,7 +229,6 @@ namespace XIVSplits
 
             try
             {
-
                 if (AcknowledgedObjectives.Contains(message.TextValue))
                 {
                     PluginLog.LogInformation($"Skipping objective: {message.TextValue} already acknowledged in the current duty");
@@ -264,39 +288,24 @@ namespace XIVSplits
                     }
                 }
 
-                /*
-                if (config.AutoNoLongerSealedSplit)
-                {
-                    var sealedRegex = NoLongerSealedRegex();
-                    var sealedMatch = sealedRegex.Match(message.TextValue);
-                    if (sealedMatch.Success)
-                    {
-                        var name = sealedMatch.Groups[1].Value;
-                        PluginLog.LogInformation($"Matched {message.TextValue} AutoNoLongerSealedOffSplit");
-                        InternalTimer.ManualSplit($"{name} no longer sealed");
-                        AcknowledgedObjectives.Add(message.TextValue);
-                        return;
-                    }
-                }*/
-
                 try
                 {
-                    foreach (Models.Objective? command in config.GenericObjectives.Where(x => x.ParseFromChat))
+                    foreach (Objective? command in config.GenericObjectives.Where(x => x.GoalType == GoalType.Chat))
                     {
-                        // skip triggers without text
-                        if (string.IsNullOrEmpty(command.CompleteObjective)) continue;
-                        if (!command.TriggerSplit) continue;
+                        if (HandleChatObjective(command, message.TextValue))
+                        {
+                            return;
+                        }
+                    }
 
-                        // regex match command trigger to message text
-                        Regex triggerRegex = new(command.CompleteObjective);
-                        Match match = triggerRegex.Match(message.TextValue);
-                        if (!match.Success) continue;
-                        PluginLog.LogInformation($"Matched {command.CompleteObjective} to {message.TextValue}");
-
-                        LiveSplit.Send("split");
-                        InternalTimer.ManualSplit(command.CompleteObjective);
-                        AcknowledgedObjectives.Add(message.TextValue);
-                        return;
+                    var duty = config.DutyObjectives.FirstOrDefault(x => x.Key == CurrentDuty);
+                    if (duty.Value == null) return;
+                    foreach (Objective? command in duty.Value.Where(x => x.GoalType == GoalType.Chat))
+                    {
+                        if (HandleChatObjective(command, message.TextValue))
+                        {
+                            return;
+                        }
                     }
                 }
                 catch (Exception e)
@@ -310,6 +319,24 @@ namespace XIVSplits
             }
         }
 
+        private bool HandleChatObjective(Objective command, string message)
+        {
+            // skip triggers without text
+            if (string.IsNullOrEmpty(command.CompleteObjective)) return false;
+            if (!command.TriggerSplit) return false;
+
+            // regex match command trigger to message text
+            Regex triggerRegex = new(command.CompleteObjective);
+            Match match = triggerRegex.Match(message);
+            if (!match.Success) return false;
+            PluginLog.LogInformation($"Matched {command.CompleteObjective} to {message}");
+
+            LiveSplit.Send("split");
+            InternalTimer.ManualSplit(command.CompleteObjective);
+            AcknowledgedObjectives.Add(message);
+            return true;
+        }
+
         public void Dispose()
         {
             PluginInterface.UiBuilder.Draw -= HandleDutyObjectives;
@@ -321,11 +348,5 @@ namespace XIVSplits
 
         [GeneratedRegex("^(.+) has begun\\.$")]
         public static partial Regex HasBegunRegex();
-
-        [GeneratedRegex("^(.+) will be sealed off in.+$")]
-        public static partial Regex SealedOffRegex();
-
-        [GeneratedRegex("^(.+) is no longer sealed!$")]
-        public static partial Regex NoLongerSealedRegex();
     }
 }
