@@ -2,7 +2,7 @@
 	<PropertyGroup>
 		<Authors>PassiveModding</Authors>    
 		<Company>PassiveModding</Company>
-		<Version>0.0.1</Version>
+		<Version>0.0.2</Version>
 		<Description>Split your FFXIV runs with ease!</Description>
 		<Copyright></Copyright>
 		<PackageProjectUrl>https://github.com/PassiveModding/XIVSplits</PackageProjectUrl>
