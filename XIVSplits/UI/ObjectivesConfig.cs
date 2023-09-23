@@ -392,6 +392,10 @@ namespace XIVSplits.UI
 
         private void DrawDutySearchInput()
         {
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 100);
+            bool changed = ImGui.InputText("##duty_search", ref dutySearch, 256);
+
+            ImGui.SameLine();
             ImGui.Text("Add Duty");
             ImGui.SameLine();
             ImGui.TextDisabled("(?)");
@@ -401,10 +405,6 @@ namespace XIVSplits.UI
                                 "note there may be some junk entries since not all objective texts are displayed\n" +
                                 "I recommend taking note of the objectives at the end of a duty for this purpose.");
             }
-
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-            bool changed = ImGui.InputText("##duty_search", ref dutySearch, 256);
 
             if (dutySearch == "")
             {
