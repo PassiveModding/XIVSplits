@@ -42,11 +42,10 @@ namespace XIVSplits.UI
                 ImGui.TextWrapped("Split is the time based on the time between the last split and the current split.");
             }
 
-            ImGui.BeginChild("Splits", new Vector2(0, 0), true);
             // dropdown, select from existing templates
             if (ImGui.BeginCombo("Current Template", config.CurrentProfile))
             {
-                foreach (string template in config.SplitCollection.Keys)
+                foreach (string template in config.SplitCollection.Keys.OrderBy(x => x))
                 {
                     bool isSelected = config.CurrentProfile == template;
                     if (ImGui.Selectable(template, isSelected))
@@ -82,10 +81,10 @@ namespace XIVSplits.UI
                 ConfigService.Save();
             }
 
+            ImGui.NewLine();
             // draw active template first
             var activeProfile = config.SplitCollection[config.CurrentProfile];
             DrawTemplate(config.CurrentProfile, activeProfile);
-            ImGui.EndChild();
         }
 
         private void DrawTemplate(string profileName, SplitProfile profile)
@@ -119,53 +118,7 @@ namespace XIVSplits.UI
             }
 
             ImGui.SameLine();
-            if (ImGui.Button($"Duplicate##{profile.GetHashCode()}"))
-            {
-                // check if name exists, add number if it does
-                int j = 1;
-                string newName = $"{name} ({j})";
-                while (config.SplitCollection.ContainsKey(newName))
-                {
-                    newName = $"{name} ({j})";
-                    j++;
-                }
-
-                // shallow copy splits
-                var newSplits = new List<Split>();
-                foreach (var split in splitTemplate)
-                {
-                    newSplits.Add(split.CloneSplit());
-                }
-
-                config.SplitCollection[newName] = new SplitProfile()
-                {
-                    Template = newSplits,
-                    History = new Dictionary<DateTime, List<Split>>()
-                };
-                ConfigService.Save();
-            }
-
-
-            // align right
-            ImGui.SameLine();
-            // grey out button if there is only one split
-            if (config.SplitCollection.Count == 1)
-            {
-                ImGui.PushStyleColor(ImGuiCol.Button, new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1));
-                ImGui.Button($"Remove##{profile.GetHashCode()}");
-                ImGui.PopStyleColor();
-            }
-            else if (ImGui.Button($"Remove##{profile.GetHashCode()}"))
-            {
-                config.SplitCollection.Remove(profileName);
-                // update current profile if it was removed
-                if (config.CurrentProfile == profileName)
-                {
-                    config.CurrentProfile = config.SplitCollection.Keys.First();
-                }
-                ConfigService.Save();
-                return;
-            }
+            ImGui.Text("Name");
 
             // table for splits
             // fit content, do not expand Y
@@ -282,6 +235,54 @@ namespace XIVSplits.UI
                 }
 
                 ImGui.EndTable();
+            }
+
+            if (ImGui.Button($"Duplicate##{profile.GetHashCode()}"))
+            {
+                // check if name exists, add number if it does
+                int j = 1;
+                string newName = $"{name} ({j})";
+                while (config.SplitCollection.ContainsKey(newName))
+                {
+                    newName = $"{name} ({j})";
+                    j++;
+                }
+
+                // shallow copy splits
+                var newSplits = new List<Split>();
+                foreach (var split in splitTemplate)
+                {
+                    newSplits.Add(split.CloneSplit());
+                }
+
+                config.SplitCollection[newName] = new SplitProfile()
+                {
+                    Template = newSplits,
+                    History = new Dictionary<DateTime, List<Split>>()
+                };
+                ConfigService.Save();
+            }
+
+
+            // align right
+            ImGui.SameLine();
+            // grey out button if there is only one split
+            if (config.SplitCollection.Count == 1)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Button, new System.Numerics.Vector4(0.5f, 0.5f, 0.5f, 1));
+                ImGui.Button($"Remove##{profile.GetHashCode()}");
+                ImGui.PopStyleColor();
+            }
+            else if (ImGui.Button($"Remove##{profile.GetHashCode()}"))
+            {
+                config.SplitCollection.Remove(profileName);
+                // update current profile if it was removed
+                if (config.CurrentProfile == profileName)
+                {
+                    config.CurrentProfile = config.SplitCollection.Keys.First();
+                }
+                ConfigService.Save();
+                return;
             }
         }
 
