@@ -64,8 +64,9 @@ namespace XIVSplits.UI
                 ImGui.EndCombo();
             }
 
+            ImGui.SameLine();
             // add a new template
-            if (ImGui.Button($"Add Template"))
+            if (ImGui.Button($"New"))
             {
                 // check if name exists, add number if it does
                 int i = 1;
@@ -77,6 +78,7 @@ namespace XIVSplits.UI
                 }
 
                 config.SplitCollection[newName] = new SplitProfile();
+                config.CurrentProfile = newName;
                 ConfigService.Save();
             }
 
@@ -112,6 +114,7 @@ namespace XIVSplits.UI
 
                 config.SplitCollection.Remove(profileName);
                 config.SplitCollection[newName] = profile;
+                config.CurrentProfile = newName;
                 ConfigService.Save();
             }
 
@@ -205,7 +208,7 @@ namespace XIVSplits.UI
 
                     ImGui.TableNextColumn();
                     ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
-                    var bestParsed = FormatTime(split.BestSegmentParsed, false);
+                    var bestParsed = split.BestSegmentParsed.FormatTimeHHMMSS(false);
                     if (ImGui.InputText($"##{split.GetHashCode()}_best_parsed", ref bestParsed, 256, ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         if (TryParseTimeInput(bestParsed, out var time))
@@ -217,7 +220,7 @@ namespace XIVSplits.UI
 
                     ImGui.TableNextColumn();
                     ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
-                    var bestSegment = FormatTime(split.BestSegment);
+                    var bestSegment = split.BestSegment.FormatTimeHHMMSS();
                     if (ImGui.InputText($"##{split.GetHashCode()}_best", ref bestSegment, 256, ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         if (TryParseTimeInput(bestSegment, out var time))
@@ -229,7 +232,7 @@ namespace XIVSplits.UI
 
                     ImGui.TableNextColumn();
                     ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
-                    var bestSplit = FormatTime(split.BestSplit);
+                    var bestSplit = split.BestSplit.FormatTimeHHMMSS();
                     if (ImGui.InputText($"##{split.GetHashCode()}_best_split", ref bestSplit, 256, ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         if (TryParseTimeInput(bestSplit, out var time))
@@ -282,58 +285,44 @@ namespace XIVSplits.UI
             }
         }
 
-        private string FormatTime(TimeSpan time, bool includeFractionalSeconds = true)
-        {
-            if (includeFractionalSeconds)
-            {
-                if (time.Hours > 0)
-                {
-                    return time.ToString(@"hh\hmm\mss\s\.fff");
-                }
-                else
-                {
-                    return time.ToString(@"mm\mss\s\.fff");
-                }
-            }
-            else
-            {
-                if (time.Hours > 0)
-                {
-                    return time.ToString(@"hh\hmm\mss\s");
-                }
-                else
-                {
-                    return time.ToString(@"mm\mss\s");
-                }
-            }
-        }
-
+        // TODO: Make this not an ugly pos
         private bool TryParseTimeInput(string input, out TimeSpan time)
         {
             time = TimeSpan.Zero;
 
-            // ensure parsing as hh:mm:ss, mm:ss, or ss, can also include fractional seconds ie .f .ff .fff
-            var formats = new string[] 
-            { 
-                @"hh\hmm\mss\s", 
-                @"hh\hmm\mss\s\.f",
-                @"hh\hmm\mss\s\.ff",
-                @"hh\hmm\mss\s\.fff",
-                @"mm\mss",
-                @"mm\mss\s\.f",
-                @"mm\mss\s\.ff",
-                @"mm\mss\s\.fff",
-                @"ss\s",
-                @"ss\s\.f",
-                @"ss\s\.ff",
-                @"ss\s\.fff"
-            };
-
-            foreach (var format in formats)
+            if (string.IsNullOrWhiteSpace(input))
             {
-                if (TimeSpan.TryParseExact(input, format, null, out time))
+                return true;
+            }
+
+            // ensure parsing as hh:mm:ss, mm:ss, or ss, can also include fractional seconds ie .f .ff .fff
+            // allowed h, hh, m, mm, s, ss, f, ff, fff
+            var hours = new string[] { @"h\:", @"hh\:", @"h\h", @"hh\h" };
+            var minutes = new string[] { @"m\:", @"mm\:", @"m\m", @"mm\m" };
+            var seconds = new string[] { @"s", @"ss", @"s\s", @"ss\s" };
+            var fractions = new string[] { @"\.f", @"\.ff", @"\.fff", @"\.f\s", @"\.ff\s", @"\.fff\s" };
+
+            // combine all possible formats
+            foreach (string h in hours)
+            foreach (string m in minutes)
+            foreach (string s in seconds)
+            foreach (string f in fractions)
+            {
+                var formats = new string[] 
+                { 
+                    $@"{h}{m}{s}{f}", 
+                    $@"{h}{m}{s}", 
+                    $@"{m}{s}{f}", 
+                    $@"{m}{s}",
+                    $@"{s}{f}",
+                    $@"{s}"
+                };
+                foreach (var format in formats)
                 {
-                    return true;
+                    if (TimeSpan.TryParseExact(input, format, null, out time))
+                    {
+                        return true;
+                    }
                 }
             }
 

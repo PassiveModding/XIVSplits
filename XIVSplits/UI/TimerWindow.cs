@@ -29,7 +29,7 @@ namespace XIVSplits.UI
             if (!showSettings) return;
 
             ImGui.SetNextWindowSize(new Vector2(700, 500), ImGuiCond.FirstUseEver);
-            if (ImGui.Begin($"XIVSplits Timer", ref showSettings))
+            if (ImGui.Begin($"{config.CurrentProfile}###xivsplitstimer", ref showSettings))
             {
                 config.ShowTimer = showSettings;
 
@@ -107,26 +107,50 @@ namespace XIVSplits.UI
                     }
                 }
 
+                // icon button to open settings
+                ImGui.SameLine();
+                ImGui.PushFont(UiBuilder.IconFont);
+                if (ImGui.Button(FontAwesomeIcon.Cog.ToIconString()))
+                {
+                    config.ShowSettings = true;
+                }
+                ImGui.PopFont();
+
 
                 // table for splits
                 // fit content, do not expand Y
                 var currentProfile = config.GetCurrentProfile();
-                if (ImGui.BeginTable("Splits", 11, ImGuiTableFlags.Borders | ImGuiTableFlags.Hideable))
+                TimeSpan sumOfSplits = TimeSpan.Zero;
+
+                if (ImGui.BeginTable("Splits", 11, ImGuiTableFlags.Borders | ImGuiTableFlags.Hideable | ImGuiTableFlags.Reorderable | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit))
                 {
+
+
                     // word for current but shorter "cur"
-                    ImGui.TableSetupColumn("Cur", ImGuiTableColumnFlags.WidthFixed, 20);
+                    ImGui.TableSetupColumn("Cur");
                     ImGui.TableSetupColumn("Name");
                     ImGui.TableSetupColumn("Tracked");
-                    ImGui.TableSetupColumn("Segment", ImGuiTableColumnFlags.WidthFixed, 60);
-                    ImGui.TableSetupColumn("Game", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.DefaultHide, 60);
-                    ImGui.TableSetupColumn("Actual", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.DefaultHide, 60);
-                    ImGui.TableSetupColumn("Split", ImGuiTableColumnFlags.WidthFixed, 60);
-                    ImGui.TableSetupColumn("Time", ImGuiTableColumnFlags.WidthFixed, 60);
-                    ImGui.TableSetupColumn("Best Game Segment"); // use best parsed segment
+                    ImGui.TableSetupColumn("Segment");
+                    ImGui.TableSetupColumn("Game");
+                    ImGui.TableSetupColumn("Actual");
+                    ImGui.TableSetupColumn("Split");
+                    ImGui.TableSetupColumn("Time");
+                    ImGui.TableSetupColumn("Best Game"); // use best parsed segment
                     ImGui.TableSetupColumn("Best Segment");
                     ImGui.TableSetupColumn("Best Split");
-                    ImGui.TableHeadersRow();
 
+                    ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
+                    SetColumnHover(0, "Cur", "Current split");
+                    SetColumnHover(1, "Name", "Name of the split");
+                    SetColumnHover(2, "Tracked", "Objective tracked");
+                    SetColumnHover(3, "Segment", "Game time or actual time if game time is not tracked");
+                    SetColumnHover(4, "Game", "Duty completion time from chat");
+                    SetColumnHover(5, "Actual", "From start of combat to kill or otherwise split time");
+                    SetColumnHover(6, "Split", "Time from last split to this split");
+                    SetColumnHover(7, "Time", "Total time since the start of the run");
+                    SetColumnHover(8, "Best Game", "Best segment time from game");
+                    SetColumnHover(9, "Best Segment", "Best segment time");
+                    SetColumnHover(10, "Best Split", "Best split time");
 
                     for (int i = 0; i < currentProfile.Template.Count; i++)
                     {
@@ -160,7 +184,7 @@ namespace XIVSplits.UI
                         // combine parsed and actual based on whether parsed is set
                         if (split.SegmentParsed == TimeSpan.Zero)
                         {
-                            ImGui.Text(split.Segment.ToString("mm\\:ss\\.ff"));
+                            DrawStyledText(split.Segment, split.BestSegment);
                             // hover text to identify the split
                             if (ImGui.IsItemHovered())
                             {
@@ -169,23 +193,34 @@ namespace XIVSplits.UI
                         }
                         else
                         {
-                            ImGui.Text(split.SegmentParsed.ToString("mm\\:ss"));
+                            DrawStyledText(split.SegmentParsed, split.BestSegmentParsed);
                         }
 
                         ImGui.TableNextColumn();
-                        DrawStyledText(split.SegmentParsed, split.BestSegmentParsed, "mm\\:ss\\.ff");
+                        DrawStyledText(split.SegmentParsed, split.BestSegmentParsed);
                         ImGui.TableNextColumn();
-                        DrawStyledText(split.Segment, split.BestSegment, "mm\\:ss\\.ff");
+                        DrawStyledText(split.Segment, split.BestSegment);
                         ImGui.TableNextColumn();
-                        DrawStyledText(split.SplitTime, split.BestSplit, "mm\\:ss\\.ff");
+                        DrawStyledText(split.SplitTime, split.BestSplit);
                         ImGui.TableNextColumn();
-                        ImGui.Text(split.Total.ToString("mm\\:ss\\.ff"));
+                        // calculated from splits instead of using split.Total so we can account for the user reordering splits
+                        if (split.SplitTime != TimeSpan.Zero)
+                        {
+                            sumOfSplits += split.SplitTime;
+                            ImGui.Text(sumOfSplits.FormatTime());
+                        }
+                        else
+                        {
+                            // forecast potential time save
+                            sumOfSplits += split.BestSplit;
+                            ImGui.Text(sumOfSplits.FormatTime());
+                        }
                         ImGui.TableNextColumn();
-                        ImGui.Text(split.BestSegmentParsed.ToString("mm\\:ss\\.ff"));
+                        ImGui.Text(split.BestSegmentParsed.FormatTime());
                         ImGui.TableNextColumn();
-                        ImGui.Text(split.BestSegment.ToString("mm\\:ss\\.ff"));
+                        ImGui.Text(split.BestSegment.FormatTime());
                         ImGui.TableNextColumn();
-                        ImGui.Text(split.BestSplit.ToString("mm\\:ss\\.ff"));
+                        ImGui.Text(split.BestSplit.FormatTime());
                     }
 
                     ImGui.EndTable();
@@ -200,44 +235,58 @@ namespace XIVSplits.UI
                     sumActualSegment += split.Segment;
                 }
 
-                ImGui.Text($"Real Time: {InternalTimer.RealTime.Elapsed:mm\\:ss\\.ff}");
-                ImGui.Text($"Segment Time: {InternalTimer.SegmentTime.Elapsed:mm\\:ss\\.ff}");
-                ImGui.Text($"Actual Segments (Total): {sumActualSegment:mm\\:ss\\.ff}");
-                ImGui.Text($"Game Segments (Total): {sumParsedSegment:mm\\:ss}");
+                ImGui.Text($"Real Time: {InternalTimer.RealTime.Elapsed.FormatTime()}");
+                ImGui.Text($"Segment Time: {InternalTimer.SegmentTime.Elapsed.FormatTime()}");
+                ImGui.Text($"Actual Segments (Total): {sumActualSegment.FormatTime()}");
+                ImGui.Text($"Game Segments (Total): {sumParsedSegment.FormatTime(false)}");
+                ImGui.Text($"Forecast: {sumOfSplits.FormatTime()}");
 
                 ImGui.End();
             }
         }
 
+        private void SetColumnHover(int index, string columnName, string description)
+        {
+            // on hover of each column, explain and show full name
+            ImGui.TableSetColumnIndex(index);
+            ImGui.PushID(columnName);
+            ImGui.TableHeader(columnName);
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip(description);
+            }
+            ImGui.PopID();
+        }
+
         // helper function to colour text based on whether the current split is better than the best split
-        private void DrawStyledText(TimeSpan segment, TimeSpan compare, string format)
+        private void DrawStyledText(TimeSpan segment, TimeSpan compare)
         {
             if (compare == TimeSpan.Zero || segment == TimeSpan.Zero)
             {
                 // white
                 ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 1, 1, 1));
-                ImGui.Text(segment.ToString(format));
+                ImGui.Text(segment.FormatTime());
                 ImGui.PopStyleColor();
             }
             else if (segment < compare)
             {
                 // green
                 ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0, 1, 0, 1));
-                ImGui.Text(segment.ToString(format));
+                ImGui.Text(segment.FormatTime());
                 ImGui.PopStyleColor();
             }
             else if (segment > compare)
             {
                 // red
                 ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 0, 0, 1));
-                ImGui.Text(segment.ToString(format));
+                ImGui.Text(segment.FormatTime());
                 ImGui.PopStyleColor();
             }
             else
             {
                 // white
                 ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1, 1, 1, 1));
-                ImGui.Text(segment.ToString(format));
+                ImGui.Text(segment.FormatTime());
                 ImGui.PopStyleColor();
             }
         }
