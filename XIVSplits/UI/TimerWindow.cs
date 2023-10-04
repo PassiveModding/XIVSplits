@@ -31,7 +31,11 @@ namespace XIVSplits.UI
             ImGui.SetNextWindowSize(new Vector2(700, 500), ImGuiCond.FirstUseEver);
             if (ImGui.Begin($"{config.CurrentProfile}###xivsplitstimer", ref showSettings))
             {
-                config.ShowTimer = showSettings;
+                if (showSettings != config.ShowTimer)
+                {
+                    config.ShowTimer = showSettings;
+                    ConfigService.Save();
+                }
 
                 // start/split button
                 if (ImGui.Button("Start"))

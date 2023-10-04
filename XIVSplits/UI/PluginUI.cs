@@ -1,5 +1,6 @@
 ﻿using Dalamud.Logging;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using ImGuiNET;
 using System;
 using System.Numerics;
@@ -15,7 +16,8 @@ namespace XIVSplits.UI
                         LiveSplitConfig liveSplitConfig,
                         Splits splits,
                         SplitHistory splitHistory,
-                        TimerWindow timerWindow)
+                        TimerWindow timerWindow,
+                        IPluginLog pluginLog)
         {
             PluginInterface = pluginInterface;
             ConfigService = configService;
@@ -24,7 +26,8 @@ namespace XIVSplits.UI
             Splits = splits;
             SplitHistory = splitHistory;
             TimerWindow = timerWindow;
-            PluginLog.Log("Initializing PluginUI");
+            PluginLog = pluginLog;
+            PluginLog.Info("Initializing PluginUI");
 
             PluginInterface.UiBuilder.Draw += Draw;
             PluginInterface.UiBuilder.OpenConfigUi += () =>
@@ -40,6 +43,7 @@ namespace XIVSplits.UI
         public Splits Splits { get; }
         public SplitHistory SplitHistory { get; }
         public TimerWindow TimerWindow { get; }
+        public IPluginLog PluginLog { get; }
 
         public void Dispose()
         {
@@ -55,7 +59,7 @@ namespace XIVSplits.UI
             }
             catch (Exception e)
             {
-                PluginLog.LogError(e, "Error in Draw");
+                PluginLog.Error(e, "Error in Draw");
             }
         }
 
@@ -68,7 +72,11 @@ namespace XIVSplits.UI
             ImGui.SetNextWindowSize(new Vector2(700, 500), ImGuiCond.FirstUseEver);
             if (ImGui.Begin($"XIVSplits Settings###xivsplitsconfig", ref showSettings))
             {
-                config.ShowSettings = showSettings;
+                if (showSettings != config.ShowSettings)
+                {
+                    config.ShowSettings = showSettings;
+                    ConfigService.Save();
+                }
 
                 if (ImGui.BeginTabBar("ConfigMenuBar###xivsplitsconfigmenubar"))
                 {

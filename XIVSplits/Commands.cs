@@ -1,5 +1,6 @@
 ﻿using Dalamud.Game.Command;
 using Dalamud.Logging;
+using Dalamud.Plugin.Services;
 using System;
 using System.Collections.Generic;
 using XIVSplits.Config;
@@ -10,11 +11,13 @@ namespace XIVSplits
     {
         private Dictionary<string, CommandInfo> CommandCollection { get; init; }
 
-        public CommandManager CommandManager { get; }
+        public ICommandManager CommandManager { get; }
+        public IPluginLog PluginLog { get; }
 
-        public Commands(ConfigService configService, CommandManager commandManager)
+        public Commands(ConfigService configService, ICommandManager commandManager, IPluginLog pluginLog)
         {
             CommandManager = commandManager;
+            PluginLog = pluginLog;
             Config.Config config = configService.Get();
             CommandCollection = new Dictionary<string, CommandInfo>()
             {
@@ -40,7 +43,7 @@ namespace XIVSplits
 
         public void Dispose()
         {
-            PluginLog.LogDebug("Disposing Commands");
+            PluginLog.Debug("Disposing Commands");
             Dispose(true);
             GC.SuppressFinalize(this);
         }
@@ -52,7 +55,7 @@ namespace XIVSplits
                 if (CommandCollection == null) return;
                 foreach (KeyValuePair<string, CommandInfo> command in CommandCollection)
                 {
-                    PluginLog.LogDebug($"Removing command: {command.Key}");
+                    PluginLog.Debug($"Removing command: {command.Key}");
                     CommandManager.RemoveHandler(command.Key);
                 }
             }

@@ -1,5 +1,6 @@
 ﻿using Dalamud.Data;
 using Dalamud.Logging;
+using Dalamud.Plugin.Services;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 using System;
@@ -14,16 +15,18 @@ namespace XIVSplits.UI
 {
     public partial class ObjectivesConfig : IPluginUIComponent
     {
-        public ObjectivesConfig(DataManager dataManager, ConfigService configService)
+        public ObjectivesConfig(IDataManager dataManager, ConfigService configService, IPluginLog pluginLog)
         {
             DataManager = dataManager;
             ConfigService = configService;
+            PluginLog = pluginLog;
         }
 
         private string dutySearch = "";
 
-        public DataManager DataManager { get; }
+        public IDataManager DataManager { get; }
         public ConfigService ConfigService { get; }
+        public IPluginLog PluginLog { get; }
 
         private readonly Objective NewGenericObjective = new()
         {
@@ -217,7 +220,7 @@ namespace XIVSplits.UI
                     // if new name found in list already, abort
                     if (config.DutyObjectives.ContainsKey(name))
                     {
-                        PluginLog.LogError($"Duty name already exists: {name}");
+                        PluginLog.Error($"Duty name already exists: {name}");
                         continue;
                     }
 
@@ -342,9 +345,9 @@ namespace XIVSplits.UI
             // show results
             if (changed)
             {
-                PluginLog.Log($"Searching for {dutySearch}");
+                PluginLog.Debug($"Searching for {dutySearch}");
                 Lumina.Excel.ExcelSheet<ContentFinderCondition>? contentFinderConditions = DataManager.GetExcelSheet<ContentFinderCondition>();
-                IEnumerable<ContentFinderCondition> matches = contentFinderConditions.Where(x => x.Name.RawString.Contains(dutySearch, StringComparison.InvariantCultureIgnoreCase));
+                IEnumerable<ContentFinderCondition> matches = contentFinderConditions!.Where(x => x.Name.RawString.Contains(dutySearch, StringComparison.InvariantCultureIgnoreCase));
                 contentFinderConditionCache = matches.ToList();
             }
 
@@ -366,7 +369,7 @@ namespace XIVSplits.UI
         {
             // add new duty objective
             Lumina.Excel.ExcelSheet<ContentFinderCondition>? contentFinderConditions = DataManager.GetExcelSheet<ContentFinderCondition>();
-            ContentFinderCondition? condition = contentFinderConditions.FirstOrDefault(x =>
+            ContentFinderCondition? condition = contentFinderConditions!.FirstOrDefault(x =>
             {
                 // trim non a-z characters from both, then compare
                 Regex regex = DutyNameRegex();
@@ -377,13 +380,13 @@ namespace XIVSplits.UI
             });
             if (condition == null)
             {
-                PluginLog.LogError($"Could not find duty: {dutySearch}");
+                PluginLog.Error($"Could not find duty: {dutySearch}");
                 return;
             }
 
             Lumina.Excel.ExcelSheet<InstanceContent>? instanceContents = DataManager.GetExcelSheet<InstanceContent>();
 
-            InstanceContent? match = instanceContents.FirstOrDefault(x => x.RowId == condition.Content);
+            InstanceContent? match = instanceContents!.FirstOrDefault(x => x.RowId == condition.Content);
             if (match == null)
             {
                 return;
@@ -394,7 +397,7 @@ namespace XIVSplits.UI
 
             Lumina.Excel.ExcelSheet<InstanceContentTextData>? instanceContentsTextData = DataManager.GetExcelSheet<InstanceContentTextData>();
 
-            IEnumerable<InstanceContentTextData> matched = instanceContentsTextData.Where(x => x.RowId >= startIndex && x.RowId <= endIndex);
+            IEnumerable<InstanceContentTextData> matched = instanceContentsTextData!.Where(x => x.RowId >= startIndex && x.RowId <= endIndex);
 
             List<Objective> objectives = new();
             foreach (InstanceContentTextData? item in matched)

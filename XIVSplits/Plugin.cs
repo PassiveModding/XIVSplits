@@ -3,6 +3,7 @@ using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
 using Dalamud.Logging;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using Microsoft.Extensions.DependencyInjection;
 using XIVSplits.Config;
 using XIVSplits.Timers;
@@ -17,10 +18,11 @@ namespace XIVSplits
         private ServiceProvider serviceProvider { get; }
 
         public Plugin(DalamudPluginInterface pluginInterface,
-            CommandManager commands,
-            ChatGui chat,
-            GameGui gameGui,
-            DataManager dataManager)
+            ICommandManager commands,
+            IChatGui chat,
+            IGameGui gameGui,
+            IDataManager dataManager,
+            IPluginLog log)
         {
             ServiceCollection serviceCollection = new();
             serviceCollection.AddSingleton(pluginInterface);
@@ -28,22 +30,25 @@ namespace XIVSplits
             serviceCollection.AddSingleton(chat);
             serviceCollection.AddSingleton(gameGui);
             serviceCollection.AddSingleton(dataManager);
-            ConfigService configService = new(pluginInterface);
+            serviceCollection.AddSingleton(log);
+
+            ConfigService configService = new(pluginInterface, log);
             configService.Load();
             serviceCollection.AddSingleton(configService);
-            ConfigureServices(serviceCollection);
+            ConfigureServices(serviceCollection, log);
             serviceProvider = serviceCollection.BuildServiceProvider();
             pluginInterface.UiBuilder.DisableAutomaticUiHide = true;
 
-            // This is temporary I swear
-            LiveSplit liveSplit = serviceProvider.GetRequiredService<LiveSplit>();
-            InternalTimer internalTimer = serviceProvider.GetRequiredService<InternalTimer>();
-            ObjectiveManager objectiveManager = serviceProvider.GetRequiredService<ObjectiveManager>();
-            Commands commandsHandler = serviceProvider.GetRequiredService<Commands>();
-            PluginUI pluginUI = serviceProvider.GetRequiredService<PluginUI>();
+            // need to initialize these after the service provider is built
+            // livesplit, internaltimer, objectivemanager, commands, pluginui
+            serviceProvider.GetRequiredService<LiveSplit>();
+            serviceProvider.GetRequiredService<InternalTimer>();
+            serviceProvider.GetRequiredService<ObjectiveManager>();
+            serviceProvider.GetRequiredService<Commands>();
+            serviceProvider.GetRequiredService<PluginUI>();
         }
 
-        private static void ConfigureServices(IServiceCollection services)
+        private static void ConfigureServices(IServiceCollection services, IPluginLog log)
         {
             services.AddSingleton<LiveSplit>();
             services.AddSingleton<InternalTimer>();
@@ -57,7 +62,7 @@ namespace XIVSplits
                 if (type.IsAbstract || type.IsInterface) continue;
                 if (typeof(IPluginUIComponent).IsAssignableFrom(type))
                 {
-                    PluginLog.LogVerbose($"Adding UI Component: {type.Name}");
+                    log.Verbose($"Adding UI Component: {type.Name}");
                     services.AddSingleton(type);
                 }
             }

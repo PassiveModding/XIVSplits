@@ -1,4 +1,5 @@
 using Dalamud.Logging;
+using Dalamud.Plugin.Services;
 using System;
 using System.Net.Sockets;
 using System.Text;
@@ -9,9 +10,10 @@ namespace XIVSplits.Timers
 {
     public class LiveSplit : IDisposable
     {
-        public LiveSplit(ConfigService configService)
+        public LiveSplit(ConfigService configService, IPluginLog pluginLog)
         {
             ConfigService = configService;
+            PluginLog = pluginLog;
         }
 
         private TcpClient? _client = null;
@@ -19,17 +21,18 @@ namespace XIVSplits.Timers
         public bool Connecting = false;
 
         public ConfigService ConfigService { get; }
+        public IPluginLog PluginLog { get; }
 
         public async Task ConnectAsync()
         {
             try
             {
-                PluginLog.LogInformation("Connecting to LiveSplit");
+                PluginLog.Information("Connecting to LiveSplit");
                 if (Connected)
                 {
                     _client?.Close();
                     _client = null;
-                    PluginLog.LogDebug("Closed existing connection to LiveSplit");
+                    PluginLog.Debug("Closed existing connection to LiveSplit");
                 }
 
                 if (_client == null)
@@ -38,7 +41,7 @@ namespace XIVSplits.Timers
                     _client = new TcpClient();
                     Config.Config config = ConfigService.Get();
                     await _client.ConnectAsync(config.LiveSplitServer, config.LiveSplitPort);
-                    PluginLog.LogInformation("Connected to LiveSplit");
+                    PluginLog.Information("Connected to LiveSplit");
                 }
 
                 Connecting = false;
@@ -48,7 +51,7 @@ namespace XIVSplits.Timers
                 Connecting = false;
                 _client?.Close();
                 _client = null;
-                PluginLog.LogError(e, "Failed to connect to LiveSplit");
+                PluginLog.Error(e, "Failed to connect to LiveSplit");
             }
         }
 
@@ -61,7 +64,7 @@ namespace XIVSplits.Timers
             _client?.Close();
             _client = null;
 
-            PluginLog.LogInformation("Disconnected from LiveSplit");
+            PluginLog.Information("Disconnected from LiveSplit");
         }
 
         public void Send(string message)
@@ -70,24 +73,24 @@ namespace XIVSplits.Timers
             {
                 if (_client == null)
                 {
-                    PluginLog.LogDebug("Skipping sending message to LiveSplit because we're not connected");
+                    PluginLog.Debug("Skipping sending message to LiveSplit because we're not connected");
                     return;
                 }
 
-                PluginLog.LogDebug($"Sending message to LiveSplit: {message}");
+                PluginLog.Debug($"Sending message to LiveSplit: {message}");
                 byte[] data = Encoding.UTF8.GetBytes($"{message}\r\n");
                 NetworkStream stream = _client.GetStream();
                 stream.Write(data);
             }
             catch (Exception e)
             {
-                PluginLog.LogError(e, "Failed to send message to LiveSplit");
+                PluginLog.Error(e, "Failed to send message to LiveSplit");
             }
         }
 
         public void Dispose()
         {
-            PluginLog.LogDebug("Disposing LiveSplit");
+            PluginLog.Debug("Disposing LiveSplit");
             if (_client != null)
             {
                 _client.Dispose();

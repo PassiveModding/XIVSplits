@@ -3,6 +3,7 @@ using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Logging;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using System;
@@ -18,7 +19,7 @@ namespace XIVSplits
 {
     public partial class ObjectiveManager : IDisposable
     {
-        public ObjectiveManager(ChatGui chatGui, DalamudPluginInterface pluginInterface, GameGui gameGui, ConfigService configService, InternalTimer internalTimer, LiveSplit liveSplit)
+        public ObjectiveManager(IChatGui chatGui, DalamudPluginInterface pluginInterface, IGameGui gameGui, ConfigService configService, InternalTimer internalTimer, LiveSplit liveSplit, IPluginLog pluginLog)
         {
             ChatGui = chatGui;
             PluginInterface = pluginInterface;
@@ -26,7 +27,7 @@ namespace XIVSplits
             ConfigService = configService;
             InternalTimer = internalTimer;
             LiveSplit = liveSplit;
-
+            PluginLog = pluginLog;
             ChatGui.ChatMessage += ChatOnChatMessage;
             PluginInterface.UiBuilder.Draw += HandleDutyObjectives;
         }
@@ -36,12 +37,13 @@ namespace XIVSplits
         private string CurrentDuty = "";
         private readonly List<string> AcknowledgedObjectives = new();
 
-        public ChatGui ChatGui { get; }
+        public IChatGui ChatGui { get; }
         public DalamudPluginInterface PluginInterface { get; }
-        public GameGui GameGui { get; }
+        public IGameGui GameGui { get; }
         public ConfigService ConfigService { get; }
         public InternalTimer InternalTimer { get; }
         public LiveSplit LiveSplit { get; }
+        public IPluginLog PluginLog { get; }
 
         public unsafe List<(string objective, float progress)>? GetDutyObjectives()
         {
@@ -152,7 +154,7 @@ namespace XIVSplits
                 if (CurrentDuty != "")
                 {
                     // reset objectives
-                    PluginLog.LogInformation($"Duty ended: {CurrentDuty}");
+                    PluginLog.Information($"Duty ended: {CurrentDuty}");
                     AcknowledgedObjectives.Clear();
                     CurrentDuty = "";
                 }
@@ -166,7 +168,7 @@ namespace XIVSplits
                 // reset objectives
                 AcknowledgedObjectives.Clear();
                 CurrentDuty = dutyName;
-                PluginLog.LogInformation($"New duty detected: {dutyName}");
+                PluginLog.Information($"New duty detected: {dutyName}");
             }
 
 
@@ -195,7 +197,7 @@ namespace XIVSplits
 
                             AcknowledgedObjectives.Add(objective);
                             // trigger split
-                            PluginLog.LogInformation($"Splitting on duty objective: {objective}");
+                            PluginLog.Information($"Splitting on duty objective: {objective}");
                             InternalTimer.ManualSplit(objective);
                         }
                     }
@@ -214,7 +216,7 @@ namespace XIVSplits
 
                         AcknowledgedObjectives.Add(objective);
                         // trigger split
-                        PluginLog.LogInformation($"Splitting on objective: {objective}");
+                        PluginLog.Information($"Splitting on objective: {objective}");
                         InternalTimer.ManualSplit(objective);
                     }
                 }
@@ -231,7 +233,7 @@ namespace XIVSplits
             {
                 if (AcknowledgedObjectives.Contains(message.TextValue))
                 {
-                    PluginLog.LogInformation($"Skipping objective: {message.TextValue} already acknowledged in the current duty");
+                    PluginLog.Information($"Skipping objective: {message.TextValue} already acknowledged in the current duty");
                     return;
                 }
 
@@ -243,7 +245,7 @@ namespace XIVSplits
                     if (match.Success)
                     {
                         string name = match.Groups[1].Value;
-                        PluginLog.LogInformation($"Matched {message.TextValue} AutoStartTimer");
+                        PluginLog.Information($"Matched {message.TextValue} AutoStartTimer");
                         AcknowledgedObjectives.Add(message.TextValue);
 
                         if (!InternalTimer.IsRunning)
@@ -275,7 +277,7 @@ namespace XIVSplits
                             int minutes = int.Parse(time.Split(":")[0]);
                             int seconds = int.Parse(time.Split(":")[1]);
                             TimeSpan parsedTime = new(0, 0, minutes, seconds);
-                            PluginLog.LogInformation($"Matched {message.TextValue} AutoCompletionTimeSplit");
+                            PluginLog.Information($"Matched {message.TextValue} AutoCompletionTimeSplit");
                             AcknowledgedObjectives.Add(message.TextValue);
                             InternalTimer.Split(parsedTime, name);
                             LiveSplit.Send("split");
@@ -283,7 +285,7 @@ namespace XIVSplits
                         }
                         catch (Exception e)
                         {
-                            PluginLog.LogError(e, "Failed to parse split");
+                            PluginLog.Error(e, "Failed to parse split");
                         }
                     }
                 }
@@ -310,7 +312,7 @@ namespace XIVSplits
                 }
                 catch (Exception e)
                 {
-                    PluginLog.LogError(e, "Error in ChatOnChatMessage");
+                    PluginLog.Error(e, "Error in ChatOnChatMessage");
                 }
             }
             finally
@@ -329,7 +331,7 @@ namespace XIVSplits
             Regex triggerRegex = new(command.CompleteObjective);
             Match match = triggerRegex.Match(message);
             if (!match.Success) return false;
-            PluginLog.LogInformation($"Matched {command.CompleteObjective} to {message}");
+            PluginLog.Information($"Matched {command.CompleteObjective} to {message}");
 
             LiveSplit.Send("split");
             InternalTimer.ManualSplit(command.CompleteObjective);

@@ -1,17 +1,21 @@
 ﻿using Dalamud.Logging;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using System;
 
 namespace XIVSplits.Config
 {
     public class ConfigService : IDisposable
     {
-        public ConfigService(DalamudPluginInterface dalamudPluginInterface)
+        public ConfigService(DalamudPluginInterface dalamudPluginInterface, IPluginLog pluginLog)
         {
             DalamudPluginInterface = dalamudPluginInterface;
+            PluginLog = pluginLog;
         }
 
         private DalamudPluginInterface DalamudPluginInterface { get; }
+        public IPluginLog PluginLog { get; }
+
         private Config _config = null!;
 
         public Config Load()
@@ -47,7 +51,7 @@ namespace XIVSplits.Config
             }
             catch (Exception e)
             {
-                PluginLog.LogError(e, "Failed to save config");
+                PluginLog.Error(e, "Failed to save config");
             }
         }
 
