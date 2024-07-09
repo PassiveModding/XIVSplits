@@ -1,20 +1,20 @@
 {
   "version": 1,
   "dependencies": {
-    "net7.0-windows7.0": {
+    "net8.0-windows7.0": {
       "DalamudPackager": {
         "type": "Direct",
-        "requested": "[2.1.12, )",
-        "resolved": "2.1.12",
-        "contentHash": "Sc0PVxvgg4NQjcI8n10/VfUQBAS4O+Fw2pZrAqBdRMbthYGeogzu5+xmIGCGmsEZ/ukMOBuAqiNiB5qA3MRalg=="
+        "requested": "[2.1.13, )",
+        "resolved": "2.1.13",
+        "contentHash": "rMN1omGe8536f4xLMvx9NwfvpAc9YFFfeXJ1t4P4PE6Gu8WCIoFliR1sh07hM+bfODmesk/dvMbji7vNI+B/pQ=="
       },
       "Lumina.Excel": {
         "type": "Direct",
-        "requested": "[6.5.0, )",
-        "resolved": "6.5.0",
-        "contentHash": "YTGtvMJGCTMFGpRlRzBBytJL9Y7eUJuf2YQLkrBvIBxRjiEIc89WaNVuVECfsddZrwGCbTdTwrNequQymPBrEw==",
+        "requested": "[7.0.1, )",
+        "resolved": "7.0.1",
+        "contentHash": "6jLesCVDfBW1PAMOBtzzrk+zS4F+WEKI/y3iKuV2lTXqWnuguVuFXdZQvhRQryQ5ruNczFmNo8pZeU0yOfqIKA==",
         "dependencies": {
-          "Lumina": "3.10.0"
+          "Lumina": "3.15.2"
         }
       },
       "Microsoft.Extensions.DependencyInjection": {
@@ -28,8 +28,8 @@
       },
       "Lumina": {
         "type": "Transitive",
-        "resolved": "3.10.0",
-        "contentHash": "OKDBlcz8VcapWCZjJWKoCq6iWjtooiN2WSu8ijP6hGtSTX03ksHuPFypSswur8KBCY9I6XYOYVBZ6IccFjrjnA=="
+        "resolved": "3.15.2",
+        "contentHash": "EnoxYEYMepcvAoXdZhaFJiv2aiDBIPjgkgzxR/+ArOxlrALzCgheTsb5yD39a9sxNIi2tNECT93ulZvYjx8fZg=="
       },
       "Microsoft.Extensions.DependencyInjection.Abstractions": {
         "type": "Transitive",

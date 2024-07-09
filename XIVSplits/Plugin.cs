@@ -17,7 +17,7 @@ namespace XIVSplits
 
         private ServiceProvider serviceProvider { get; }
 
-        public Plugin(DalamudPluginInterface pluginInterface,
+        public Plugin(IDalamudPluginInterface pluginInterface,
             ICommandManager commands,
             IChatGui chat,
             IGameGui gameGui,

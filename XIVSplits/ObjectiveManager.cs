@@ -19,7 +19,7 @@ namespace XIVSplits
 {
     public partial class ObjectiveManager : IDisposable
     {
-        public ObjectiveManager(IChatGui chatGui, DalamudPluginInterface pluginInterface, IGameGui gameGui, ConfigService configService, InternalTimer internalTimer, LiveSplit liveSplit, IPluginLog pluginLog)
+        public ObjectiveManager(IChatGui chatGui, IDalamudPluginInterface pluginInterface, IGameGui gameGui, ConfigService configService, InternalTimer internalTimer, LiveSplit liveSplit, IPluginLog pluginLog)
         {
             ChatGui = chatGui;
             PluginInterface = pluginInterface;
@@ -31,14 +31,13 @@ namespace XIVSplits
             ChatGui.ChatMessage += ChatOnChatMessage;
             PluginInterface.UiBuilder.Draw += HandleDutyObjectives;
         }
-
         private DateTime lastCachedTime = DateTime.MinValue;
         private List<(string objective, float progress)>? cachedObjectives = null;
         private string CurrentDuty = "";
         private readonly List<string> AcknowledgedObjectives = new();
 
         public IChatGui ChatGui { get; }
-        public DalamudPluginInterface PluginInterface { get; }
+        public IDalamudPluginInterface PluginInterface { get; }
         public IGameGui GameGui { get; }
         public ConfigService ConfigService { get; }
         public InternalTimer InternalTimer { get; }
@@ -60,7 +59,7 @@ namespace XIVSplits
             }
 
             Director currentDirector = framework->DirectorModule.ActiveContentDirector->Director;
-            string duty = currentDirector.String0.ToString();
+            string duty = currentDirector.Title.ToString();
             if (string.IsNullOrEmpty(duty))
             {
                 return null;
@@ -79,7 +78,7 @@ namespace XIVSplits
             {
                 AtkResNode* node = manager.NodeList[i];
                 // Sastasha ids 21001-21005, assuming other duties have more, not sure where the limit is
-                if (node->NodeID < 21001 || node->NodeID > 21015)
+                if (node->NodeId < 21001 || node->NodeId > 21015)
                 {
                     continue;
                 }
@@ -96,18 +95,18 @@ namespace XIVSplits
                 for (int j = 0; j < nodeManager.NodeListCount; j++)
                 {
                     AtkResNode* lineNode = nodeManager.NodeList[j];
-                    if (lineNode->NodeID == 6)
+                    if (lineNode->NodeId == 6)
                     {
                         // Objective text
                         AtkTextNode* lineTextNode = (AtkTextNode*)lineNode;
                         objective = lineTextNode->NodeText.ToString();
                     }
 
-                    if (lineNode->NodeID == 2)
+                    if (lineNode->NodeId == 2)
                     {
                         // Objective progress bar
                         AtkNineGridNode* lineProgressNode = (AtkNineGridNode*)lineNode;
-                        if (lineProgressNode->AtkResNode.IsVisible)
+                        if (lineProgressNode->AtkResNode.IsVisible())
                         {
                             progress = lineProgressNode->AtkResNode.ScaleX;
                         }
@@ -137,7 +136,7 @@ namespace XIVSplits
             }
 
             Director currentDirector = framework->DirectorModule.ActiveContentDirector->Director;
-            string duty = currentDirector.String0.ToString();
+            string duty = currentDirector.Title.ToString();
             if (string.IsNullOrEmpty(duty))
             {
                 return null;
@@ -225,7 +224,7 @@ namespace XIVSplits
 
         private SemaphoreSlim SemaphoreSlim = new(1, 1);
 
-        private void ChatOnChatMessage(XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled)
+        private void ChatOnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool ishandled)
         {
             SemaphoreSlim.Wait();
 

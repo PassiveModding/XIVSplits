@@ -10,7 +10,7 @@ namespace XIVSplits.UI
 {
     public class PluginUI : IDisposable
     {
-        public PluginUI(DalamudPluginInterface pluginInterface,
+        public PluginUI(IDalamudPluginInterface pluginInterface,
                         ConfigService configService,
                         ObjectivesConfig dutyObjectivesConfig,
                         LiveSplitConfig liveSplitConfig,
@@ -36,7 +36,7 @@ namespace XIVSplits.UI
             };
         }
 
-        public DalamudPluginInterface PluginInterface { get; }
+        public IDalamudPluginInterface PluginInterface { get; }
         public ConfigService ConfigService { get; }
         public ObjectivesConfig DutyObjectivesConfig { get; }
         public LiveSplitConfig LiveSplitConfig { get; }
