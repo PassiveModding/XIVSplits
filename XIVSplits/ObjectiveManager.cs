@@ -77,8 +77,8 @@ namespace XIVSplits
             for (int i = 0; i < manager.NodeListCount; i++)
             {
                 AtkResNode* node = manager.NodeList[i];
-                // Sastasha ids 21001-21005, assuming other duties have more, not sure where the limit is
-                if (node->NodeId < 21001 || node->NodeId > 21015)
+                // NodeIds have been updated
+                if (node->NodeId < 22001 || node->NodeId > 25000)
                 {
                     continue;
                 }
@@ -154,6 +154,7 @@ namespace XIVSplits
                 {
                     // reset objectives
                     PluginLog.Information($"Duty ended: {CurrentDuty}");
+                    InternalTimer.Stop();
                     AcknowledgedObjectives.Clear();
                     CurrentDuty = "";
                 }
