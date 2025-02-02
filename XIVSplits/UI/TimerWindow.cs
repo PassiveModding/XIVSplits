@@ -272,7 +272,7 @@ namespace XIVSplits.UI
                 ImGui.Text(segment.FormatTime());
                 ImGui.PopStyleColor();
             }
-            else if (segment <= compare)
+            else if (segment < compare)
             {
                 // green
                 ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0, 1, 0, 1));

@@ -154,7 +154,6 @@ namespace XIVSplits
                 {
                     // reset objectives
                     PluginLog.Information($"Duty ended: {CurrentDuty}");
-                    InternalTimer.Stop();
                     AcknowledgedObjectives.Clear();
                     CurrentDuty = "";
                 }
