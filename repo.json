@@ -8,7 +8,7 @@
 		"TestingAssemblyVersion": "0.2.0",
 		"RepoUrl": "https://github.com/PassiveModding/XIVSplits",
 		"ApplicableVersion": "any",
-		"DalamudApiLevel": 11,
+		"DalamudApiLevel": 12,
 		"Tags": [
 			"speedrun",
 			"livesplit"
