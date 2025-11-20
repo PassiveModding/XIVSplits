@@ -1,6 +1,6 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Dalamud.NET.Sdk/13.0.0">
 	<PropertyGroup>
-		<Authors>PassiveModding</Authors>    
+		<Authors>PassiveModding</Authors>
 		<Company>PassiveModding</Company>
 		<Version>0.0.3</Version>
 		<Description>Split your FFXIV runs with ease!</Description>
@@ -10,57 +10,10 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<TargetFramework>net8.0-windows</TargetFramework>
-		<Platforms>x64</Platforms>
-		<Nullable>enable</Nullable>
+		<TargetFramework>net9.0-windows</TargetFramework>
 		<LangVersion>latest</LangVersion>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<ProduceReferenceAssembly>false</ProduceReferenceAssembly>
-		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-</PropertyGroup>
-		
-	<PropertyGroup>
-		<DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
-		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
-		<AssemblyVersion>1.0.2.1</AssemblyVersion>
-		<BaseOutputPath>bin\</BaseOutputPath>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(OS)' != 'Windows_NT' OR '$(CI)' == 'true'">
-		<DalamudLibPath>$(DALAMUD_HOME)/</DalamudLibPath>
-		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="$(Configuration) == 'External'">
-		<TargetFramework>net7.0</TargetFramework>
-		<DefineConstants>EXTERNAL_BUILD</DefineConstants>
-		<DalamudLibPath>..\..\DalamudLibs\</DalamudLibPath>
-	</PropertyGroup>
-
 	<ItemGroup>
-		<PackageReference Include="Lumina.Excel" Version="7.0.1" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
-    	<PackageReference Include="DalamudPackager" Version="2.1.13" />
-		<Reference Include="FFXIVClientStructs">
-			<HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Dalamud" Private="False">
-			<HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="ImGui.NET" Private="False">
-			<HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Lumina">
-			<HintPath>$(DalamudLibPath)Lumina.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Lumina.Excel">
-			<HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
 	</ItemGroup>
 </Project>

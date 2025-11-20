@@ -1,4 +1,4 @@
-﻿using ImGuiNET;
+﻿using Dalamud.Bindings.ImGui;
 using System.Threading.Tasks;
 using XIVSplits.Config;
 using XIVSplits.Timers;
@@ -41,7 +41,7 @@ namespace XIVSplits.UI
             }
 
             int liveSplitPort = config.LiveSplitPort;
-            if (ImGui.InputInt("LiveSplit Port", ref liveSplitPort, 1, 100, editflags) && liveSplitPort != config.LiveSplitPort)
+            if (ImGui.InputInt("LiveSplit Port", ref liveSplitPort, 1, 100, flags: editflags) && liveSplitPort != config.LiveSplitPort)
             {
                 config.LiveSplitPort = liveSplitPort;
                 ConfigService.Save();

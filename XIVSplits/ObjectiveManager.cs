@@ -1,4 +1,5 @@
 ﻿using Dalamud.Game.Gui;
+using Dalamud.Game.NativeWrapper;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Logging;
@@ -65,7 +66,7 @@ namespace XIVSplits
                 return null;
             }
 
-            AtkUnitBase* addon = (AtkUnitBase*)GameGui.GetAddonByName("_ToDoList", 1);
+            AtkUnitBase* addon = (AtkUnitBase*)GameGui.GetAddonByName("_ToDoList", 1).Address;
             if (addon == null)
             {
                 return null;
