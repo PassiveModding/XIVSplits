@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using XIVSplits.Config;
 using XIVSplits.Models;
 using XIVSplits.Timers;
@@ -71,18 +72,13 @@ namespace XIVSplits
             {
                 return null;
             }
-
+            
             List<(string objective, float progress)> objectives = new();
 
             AtkUldManager manager = addon->UldManager;
             for (int i = 0; i < manager.NodeListCount; i++)
             {
                 AtkResNode* node = manager.NodeList[i];
-                // Sastasha ids 21001-21005, assuming other duties have more, not sure where the limit is
-                if (node->NodeId < 21001 || node->NodeId > 21015)
-                {
-                    continue;
-                }
 
                 AtkComponentNode* componentNode = (AtkComponentNode*)node;
                 if (componentNode == null || componentNode->Component == null)
@@ -171,35 +167,31 @@ namespace XIVSplits
                 PluginLog.Information($"New duty detected: {dutyName}");
             }
 
-
             var currentObjectives = GetDutyObjectives();
             if (currentObjectives == null) return;
-
 
             var dutyObjectiveConfig = config.DutyObjectives.FirstOrDefault(x => x.Key == dutyName);
             var genericObjectives = config.GenericObjectives.Where(x => x.GoalType == GoalType.DutyObjective).ToArray();
 
-            for (int i = 0; i < currentObjectives.Count; i++)
+            foreach ((string objective, float progress) in currentObjectives)
             {
-                (string objective, float progress) = currentObjectives[i];
-
                 if (dutyObjectiveConfig.Value != null)
                 {
-                    for (int j = 0; j < dutyObjectiveConfig.Value.Count; j++)
+                    foreach (Objective configObjective in dutyObjectiveConfig.Value)
                     {
-                        Objective configObjective = dutyObjectiveConfig.Value[j];
-
                         Match match = Regex.Match(objective, configObjective.CompleteObjective, RegexOptions.IgnoreCase);
-                        if (match.Success && configObjective.TriggerSplit)
+                        if (!match.Success || !configObjective.TriggerSplit)
                         {
-                            if (AcknowledgedObjectives.Contains(objective)) continue;
-                            if (progress < 1) continue;
-
-                            AcknowledgedObjectives.Add(objective);
-                            // trigger split
-                            PluginLog.Information($"Splitting on duty objective: {objective}");
-                            InternalTimer.ManualSplit(objective);
+                            continue;
                         }
+                        
+                        if (AcknowledgedObjectives.Contains(objective)) continue;
+                        if (progress < 1) continue;
+
+                        AcknowledgedObjectives.Add(objective);
+                        // trigger split
+                        PluginLog.Information($"Splitting on duty objective: {objective}");
+                        InternalTimer.ManualSplit(objective);
                     }
                 }
 
