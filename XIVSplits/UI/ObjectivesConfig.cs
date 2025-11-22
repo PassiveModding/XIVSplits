@@ -1,8 +1,6 @@
-﻿using Dalamud.Data;
-using Dalamud.Logging;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Plugin.Services;
-using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -347,7 +345,7 @@ namespace XIVSplits.UI
             {
                 PluginLog.Debug($"Searching for {dutySearch}");
                 Lumina.Excel.ExcelSheet<ContentFinderCondition>? contentFinderConditions = DataManager.GetExcelSheet<ContentFinderCondition>();
-                IEnumerable<ContentFinderCondition> matches = contentFinderConditions!.Where(x => x.Name.RawString.Contains(dutySearch, StringComparison.InvariantCultureIgnoreCase));
+                IEnumerable<ContentFinderCondition> matches = contentFinderConditions!.Where(x => x.Name.ToString().Contains(dutySearch, StringComparison.InvariantCultureIgnoreCase));
                 contentFinderConditionCache = matches.ToList();
             }
 
@@ -356,9 +354,9 @@ namespace XIVSplits.UI
                 ImGui.Text("Matches");
                 foreach (ContentFinderCondition condition in contentFinderConditionCache)
                 {
-                    if (ImGui.Button(condition.Name.RawString))
+                    if (ImGui.Button(condition.Name.ToString()))
                     {
-                        AddDuty(condition.Name.RawString);
+                        AddDuty(condition.Name.ToString());
                         dutySearch = "";
                     }
                 }
@@ -373,12 +371,12 @@ namespace XIVSplits.UI
             {
                 // trim non a-z characters from both, then compare
                 Regex regex = DutyNameRegex();
-                string xName = regex.Replace(x.Name.RawString, "");
+                string xName = regex.Replace(x.Name.ToString(), "");
                 string searchTermName = regex.Replace(searchTerm, "");
 
                 return xName.Equals(searchTermName, StringComparison.InvariantCultureIgnoreCase);
             });
-            if (condition == null)
+            if (!condition.HasValue)
             {
                 PluginLog.Error($"Could not find duty: {dutySearch}");
                 return;
@@ -386,14 +384,14 @@ namespace XIVSplits.UI
 
             Lumina.Excel.ExcelSheet<InstanceContent>? instanceContents = DataManager.GetExcelSheet<InstanceContent>();
 
-            InstanceContent? match = instanceContents!.FirstOrDefault(x => x.RowId == condition.Content);
-            if (match == null)
+            InstanceContent? match = instanceContents!.FirstOrDefault(x => x.RowId == condition.Value.Content.RowId);
+            if (!match.HasValue)
             {
                 return;
             }
 
-            int startIndex = (int)match.InstanceContentTextDataObjectiveStart.Row;
-            int endIndex = (int)match.InstanceContentTextDataObjectiveEnd.Row;
+            int startIndex = (int)match.Value.InstanceContentTextDataObjectiveStart.RowId;
+            int endIndex = (int)match.Value.InstanceContentTextDataObjectiveEnd.RowId;
 
             Lumina.Excel.ExcelSheet<InstanceContentTextData>? instanceContentsTextData = DataManager.GetExcelSheet<InstanceContentTextData>();
 
@@ -404,14 +402,14 @@ namespace XIVSplits.UI
             {
                 objectives.Add(new Objective
                 {
-                    CompleteObjective = $"^{Regex.Escape(item.Text)}.*$",
+                    CompleteObjective = $"^{Regex.Escape(item.Value.Text.ToString())}.*$",
                     GoalType = GoalType.DutyObjective,
                     TriggerSplit = true,
                 });
             }
 
             Config.Config config = ConfigService.Get();
-            config.DutyObjectives.Add(condition.Name.RawString, objectives);
+            config.DutyObjectives.Add(condition.Value.Name.ToString(), objectives);
             ConfigService.Save();
         }
 

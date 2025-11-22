@@ -1,7 +1,6 @@
-﻿using Dalamud.Logging;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using ImGuiNET;
 using System;
 using System.Numerics;
 using XIVSplits.Config;
