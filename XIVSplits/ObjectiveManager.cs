@@ -192,6 +192,7 @@ namespace XIVSplits
                         // trigger split
                         PluginLog.Information($"Splitting on duty objective: {objective}");
                         InternalTimer.ManualSplit(objective);
+                        LiveSplit.Send("split");
                     }
                 }
 
@@ -210,6 +211,7 @@ namespace XIVSplits
                         // trigger split
                         PluginLog.Information($"Splitting on objective: {objective}");
                         InternalTimer.ManualSplit(objective);
+                        LiveSplit.Send("split");
                     }
                 }
             }
