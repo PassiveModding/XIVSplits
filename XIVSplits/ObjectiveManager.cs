@@ -144,6 +144,7 @@ namespace XIVSplits
 
         private void HandleDutyObjectives()
         {
+            var config = ConfigService.Get();
             string? dutyName = GetDutyName();
             if (dutyName == null || string.IsNullOrWhiteSpace(dutyName))
             {
@@ -151,6 +152,11 @@ namespace XIVSplits
                 {
                     // reset objectives
                     PluginLog.Information($"Duty ended: {CurrentDuty}");
+                    if (config.SingleDutyMode)
+                    {
+                        InternalTimer.Stop();
+                        LiveSplit.Send("reset");
+                    }
                     AcknowledgedObjectives.Clear();
                     CurrentDuty = "";
                 }
@@ -158,7 +164,6 @@ namespace XIVSplits
                 return;
             }
 
-            var config = ConfigService.Get();
             if (CurrentDuty != dutyName)
             {
                 // reset objectives
