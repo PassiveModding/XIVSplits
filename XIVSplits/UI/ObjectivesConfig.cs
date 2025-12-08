@@ -194,6 +194,21 @@ namespace XIVSplits.UI
             {
                 ImGui.SetTooltip($"Will split the timer when \"{ObjectiveManager.CompletionTimeRegex()}\" is sent to chat.");
             }
+
+            ImGui.SameLine();
+            bool singleDuty = config.SingleDutyMode;
+            if (ImGui.Checkbox("Single Duty Mode", ref singleDuty) && singleDuty != config.SingleDutyMode)
+            {
+                config.SingleDutyMode = singleDuty;
+                ConfigService.Save();
+            }
+            ImGui.SameLine();
+            // hover text for regex help
+            ImGui.TextDisabled("(?)");
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip("Resets the internal timer and livesplit if connected on duty end, do not use this if doing a longer run.");
+            }
         }
 
 
