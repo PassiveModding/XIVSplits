@@ -67,12 +67,18 @@ namespace XIVSplits
                 return null;
             }
 
-            AtkUnitBase* addon = (AtkUnitBase*)GameGui.GetAddonByName("_ToDoList", 1).Address;
+            var addonPtr = GameGui.GetAddonByName("_ToDoList", 1);
+            if (addonPtr == null || addonPtr.Address == nint.Zero)
+            {
+                return null;
+            }
+
+            AtkUnitBase* addon = (AtkUnitBase*)addonPtr.Address;
             if (addon == null)
             {
                 return null;
             }
-            
+
             List<(string objective, float progress)> objectives = new();
 
             AtkUldManager manager = addon->UldManager;
@@ -80,8 +86,13 @@ namespace XIVSplits
             {
                 AtkResNode* node = manager.NodeList[i];
 
+                if (node == null || node->GetNodeType() != NodeType.Component)
+                {
+                    continue;
+                }
+
                 AtkComponentNode* componentNode = (AtkComponentNode*)node;
-                if (componentNode == null || componentNode->Component == null)
+                if (componentNode->Component == null)
                 {
                     continue;
                 }
@@ -92,14 +103,25 @@ namespace XIVSplits
                 for (int j = 0; j < nodeManager.NodeListCount; j++)
                 {
                     AtkResNode* lineNode = nodeManager.NodeList[j];
-                    if (lineNode->NodeId == 6)
+                    if (lineNode == null)
+                    {
+                        continue;
+                    }
+
+                    if (lineNode->GetNodeType() == NodeType.Text && lineNode->NodeId == 6)
                     {
                         // Objective text
                         AtkTextNode* lineTextNode = (AtkTextNode*)lineNode;
-                        objective = lineTextNode->NodeText.ToString();
+
+                        var utf8 = lineTextNode->NodeText;
+                        if (utf8.StringPtr != null && utf8.Length > 0)
+                        {
+                            objective = utf8.ToString();
+                        }
+                        
                     }
 
-                    if (lineNode->NodeId == 2)
+                    if (lineNode->GetNodeType() == NodeType.NineGrid && lineNode->NodeId == 2)
                     {
                         // Objective progress bar
                         AtkNineGridNode* lineProgressNode = (AtkNineGridNode*)lineNode;
@@ -123,7 +145,6 @@ namespace XIVSplits
             return objectives;
         }
 
-
         private unsafe string? GetDutyName()
         {
             EventFramework* framework = EventFramework.Instance();
@@ -144,6 +165,7 @@ namespace XIVSplits
 
         private void HandleDutyObjectives()
         {
+            var config = ConfigService.Get();
             string? dutyName = GetDutyName();
             if (dutyName == null || string.IsNullOrWhiteSpace(dutyName))
             {
@@ -151,6 +173,11 @@ namespace XIVSplits
                 {
                     // reset objectives
                     PluginLog.Information($"Duty ended: {CurrentDuty}");
+                    if (config.SingleDutyMode)
+                    {
+                        InternalTimer.Stop();
+                        LiveSplit.Send("reset");
+                    }
                     AcknowledgedObjectives.Clear();
                     CurrentDuty = "";
                 }
@@ -158,7 +185,6 @@ namespace XIVSplits
                 return;
             }
 
-            var config = ConfigService.Get();
             if (CurrentDuty != dutyName)
             {
                 // reset objectives
@@ -192,6 +218,7 @@ namespace XIVSplits
                         // trigger split
                         PluginLog.Information($"Splitting on duty objective: {objective}");
                         InternalTimer.ManualSplit(objective);
+                        LiveSplit.Send("split");
                     }
                 }
 
@@ -210,6 +237,7 @@ namespace XIVSplits
                         // trigger split
                         PluginLog.Information($"Splitting on objective: {objective}");
                         InternalTimer.ManualSplit(objective);
+                        LiveSplit.Send("split");
                     }
                 }
             }

@@ -17,6 +17,7 @@ namespace XIVSplits.Config
 
         public bool AutoStartTimer { get; set; } = true;
         public bool AutoCompletionTimeSplit { get; set; } = true;
+        public bool SingleDutyMode { get; set; } = false;
 
         public Dictionary<string, List<Objective>> DutyObjectives { get; set; } = new();
         public List<Objective> GenericObjectives { get; set; } = new();
