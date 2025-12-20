@@ -109,8 +109,8 @@ jobs:
             XIVSplits/bin/Release/XIVSplits/checksums.sha512
 
       - name: Update repo.json
-        working-directory: XIVSplits/
-        run: |          
+        run: |
+          cd ../
           release_version="${{ env.VERSION }}"
           echo "Release Version: $release_version"
           repo_url="$(echo "${{ github.server_url }}/${{ github.repository }}" | sed 's/#/\\#/g')"
