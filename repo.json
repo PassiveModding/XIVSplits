@@ -4,8 +4,8 @@
     "Name": "XIVSplits",
     "InternalName": "XIVSplits",
     "Description": "Split your FFXIV runs with ease!",
-    "AssemblyVersion": "0.1.2",
-    "TestingAssemblyVersion": "0.1.2",
+    "AssemblyVersion": "0.1.3",
+    "TestingAssemblyVersion": "0.1.3",
     "RepoUrl": "https://github.com/PassiveModding/XIVSplits",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 14,
@@ -13,9 +13,9 @@
       "speedrun",
       "livesplit"
     ],
-    "DownloadLinkInstall": "https://github.com/PassiveModding/XIVSplits/releases/download/v0.1.2_stg/latest.zip",
-    "DownloadLinkTesting": "https://github.com/PassiveModding/XIVSplits/releases/download/v0.1.2_stg/latest.zip",
-    "DownloadLinkUpdate": "https://github.com/PassiveModding/XIVSplits/releases/download/v0.1.2_stg/latest.zip",
+    "DownloadLinkInstall": "https://github.com/PassiveModding/XIVSplits/releases/download/v0.1.3/latest.zip",
+    "DownloadLinkTesting": "https://github.com/PassiveModding/XIVSplits/releases/download/v0.1.3/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/PassiveModding/XIVSplits/releases/download/v0.1.3/latest.zip",
     "TestingDalamudApiLevel": 14
   }
 ]
