@@ -22,6 +22,7 @@ namespace XIVSplits
             IChatGui chat,
             IGameGui gameGui,
             IDataManager dataManager,
+            IFramework framework,
             IPluginLog log)
         {
             ServiceCollection serviceCollection = new();
@@ -30,6 +31,7 @@ namespace XIVSplits
             serviceCollection.AddSingleton(chat);
             serviceCollection.AddSingleton(gameGui);
             serviceCollection.AddSingleton(dataManager);
+            serviceCollection.AddSingleton(framework);
             serviceCollection.AddSingleton(log);
 
             ConfigService configService = new(pluginInterface, log);
@@ -44,6 +46,7 @@ namespace XIVSplits
             serviceProvider.GetRequiredService<LiveSplit>();
             serviceProvider.GetRequiredService<InternalTimer>();
             serviceProvider.GetRequiredService<ObjectiveManager>();
+            serviceProvider.GetRequiredService<QuestManager>();
             serviceProvider.GetRequiredService<Commands>();
             serviceProvider.GetRequiredService<PluginUI>();
         }
@@ -53,6 +56,7 @@ namespace XIVSplits
             services.AddSingleton<LiveSplit>();
             services.AddSingleton<InternalTimer>();
             services.AddSingleton<ObjectiveManager>();
+            services.AddSingleton<QuestManager>();
             services.AddSingleton<Commands>();
 
             // UI Setup
