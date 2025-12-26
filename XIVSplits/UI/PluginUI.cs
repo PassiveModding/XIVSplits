@@ -12,6 +12,7 @@ namespace XIVSplits.UI
         public PluginUI(IDalamudPluginInterface pluginInterface,
                         ConfigService configService,
                         ObjectivesConfig dutyObjectivesConfig,
+                        QuestConfig questConfig,
                         LiveSplitConfig liveSplitConfig,
                         Splits splits,
                         SplitHistory splitHistory,
@@ -21,6 +22,7 @@ namespace XIVSplits.UI
             PluginInterface = pluginInterface;
             ConfigService = configService;
             DutyObjectivesConfig = dutyObjectivesConfig;
+            QuestConfig = questConfig;
             LiveSplitConfig = liveSplitConfig;
             Splits = splits;
             SplitHistory = splitHistory;
@@ -38,6 +40,7 @@ namespace XIVSplits.UI
         public IDalamudPluginInterface PluginInterface { get; }
         public ConfigService ConfigService { get; }
         public ObjectivesConfig DutyObjectivesConfig { get; }
+        public QuestConfig QuestConfig { get; }
         public LiveSplitConfig LiveSplitConfig { get; }
         public Splits Splits { get; }
         public SplitHistory SplitHistory { get; }
@@ -94,6 +97,12 @@ namespace XIVSplits.UI
                     if (ImGui.BeginTabItem("Duty Objectives###xivdutyobjectives"))
                     {
                         DutyObjectivesConfig.Draw();
+                        ImGui.EndTabItem();
+                    }
+
+                    if (ImGui.BeginTabItem("Quest Objectives###xivquestobjectives"))
+                    {
+                        QuestConfig.Draw();
                         ImGui.EndTabItem();
                     }
 

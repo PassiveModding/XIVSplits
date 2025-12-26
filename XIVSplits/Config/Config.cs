@@ -15,6 +15,9 @@ namespace XIVSplits.Config
         public string LiveSplitServer { get; set; } = "localhost";
         public int LiveSplitPort { get; set; } = 16834;
 
+        public bool EnableAllQuests = false;
+        public HashSet<uint> SelectedQuestIds = new();
+
         public bool AutoStartTimer { get; set; } = true;
         public bool AutoCompletionTimeSplit { get; set; } = true;
         public bool SingleDutyMode { get; set; } = false;

@@ -203,7 +203,7 @@ namespace XIVSplits.UI
                 ConfigService.Save();
             }
             ImGui.SameLine();
-            // hover text for regex help
+            // hover text
             ImGui.TextDisabled("(?)");
             if (ImGui.IsItemHovered())
             {
